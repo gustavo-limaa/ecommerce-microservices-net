@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="../Ecommerce.Pedido.Api/Ecommerce.Pedido.Api.csproj" />
+  <Project Path="Ecommerce.Pagamento.Worker.csproj" />
+</Solution>
