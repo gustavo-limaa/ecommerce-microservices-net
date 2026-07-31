@@ -2,7 +2,7 @@
 using Ecommerce.Pedido.Api.Domain.GlobalErros;
 using System.Text.RegularExpressions;
 
-namespace Ecommerce.Pedido.Api.Domain.ValueObjects;
+namespace Ecommerce.Pedido.Api.Domain.Values.Objects;
 
 public sealed record EnderecoEntrega
 {

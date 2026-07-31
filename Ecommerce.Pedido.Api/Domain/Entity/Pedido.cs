@@ -1,7 +1,4 @@
-﻿using Ecommerce.Pedido.Api.Domain;
-using Ecommerce.Pedido.Api.Domain.Common;
-using Ecommerce.Pedido.Api.Domain.Entity;
-using Ecommerce.Pedido.Api.Domain.ValueObjects;
+﻿using Ecommerce.Pedido.Api.Domain.Common;
 using Ecommerce.Pedido.Api.Domain.Values.Objects;
 using global::Ecommerce.Pedido.Api.Domain.GlobalErros;
 
