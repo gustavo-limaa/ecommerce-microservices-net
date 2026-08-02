@@ -1,6 +1,6 @@
 ﻿using Ecommerce.Pedido.Api.Domain.Values.Objects;
 
-namespace Ecommerce.Pedido.Api.Aplication.Dtos.Responses;
+namespace Ecommerce.Pedido.Api.Application.Dtos.Responses;
 
 public sealed record class ItemPedidoDtoResponse
 (

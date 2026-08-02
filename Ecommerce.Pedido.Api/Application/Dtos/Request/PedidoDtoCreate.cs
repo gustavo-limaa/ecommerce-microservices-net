@@ -1,8 +1,8 @@
-﻿using Ecommerce.Pedido.Api.Domain.Values.Objects;
+﻿using Ecommerce.Pedido.Api.Application.Dtos.Request;
 
-namespace Ecommerce.Pedido.Api.Aplication.Dtos.Request;
+namespace Ecommerce.Pedido.Api.Application.Dtos.Request;
 
 public sealed record class PedidoDtoCreate(Guid ClienteId,
-ObjectCPF CpfCliente,
+string CpfCliente,
 EnderecoDtoCreate EnderecoEntrega,
 List<ItemPedidoDtoCreate> Itens);

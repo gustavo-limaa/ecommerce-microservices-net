@@ -1,4 +1,4 @@
-﻿using Ecommerce.Pedido.Api.Aplication.Dtos.Request;
+﻿using Ecommerce.Pedido.Api.Application.Dtos.Request;
 using Ecommerce.Pedido.Api.Application.Dtos.Responses;
 using Ecommerce.Pedido.Api.Application.Mappers.ForEntities;
 using Ecommerce.Pedido.Api.Application.Mappers.ForResponse;
