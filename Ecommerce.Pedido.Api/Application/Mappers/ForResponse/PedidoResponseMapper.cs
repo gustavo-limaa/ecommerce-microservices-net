@@ -1,4 +1,5 @@
-﻿using Ecommerce.Pedido.Api.Aplication.Dtos.Responses;
+﻿using Ecommerce.Pedido.Api.Application.Dtos.Responses;
+
 using PedidoEntity = Ecommerce.Pedido.Api.Domain.Entity.Pedido;
 
 namespace Ecommerce.Pedido.Api.Application.Mappers.ForResponse;

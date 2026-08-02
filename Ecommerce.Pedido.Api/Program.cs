@@ -1,29 +1,32 @@
-using Ecommerce.Pedido.Api.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
+using Ecommerce.Pedido.Api;
+using Ecommerce.Pedido.Api.Middlewares;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
+builder.Services
+    .AddInfrastructure(builder.Configuration)
+    .AddApplication();
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
-// 2. Registrar o DbContext no container de Injeção de Dependência
-builder.Services.AddDbContext<AppDbContext>(options =>
-{
-    options.UseMySql(
-        connectionString,
-        ServerVersion.AutoDetect(connectionString)
-    );
-});
-
+builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
-
-// Configure the HTTP request pipeline.
+app.UseExceptionHandler();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference(options =>
+    {
+        options
+            .WithTitle("Ecommerce - Pedido API")
+            .WithTheme(ScalarTheme.Moon)
+            .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
+    });
 }
-
 app.UseHttpsRedirection();
+
+app.MapControllers();
 
 app.Run();

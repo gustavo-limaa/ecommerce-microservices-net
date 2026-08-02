@@ -1,4 +1,4 @@
-﻿namespace Ecommerce.Pedido.Api.Aplication.Dtos.Request;
+﻿namespace Ecommerce.Pedido.Api.Application.Dtos.Request;
 
 public sealed record class ItemPedidoDtoCreate(Guid ProdutoId,
     string NomeProduto,

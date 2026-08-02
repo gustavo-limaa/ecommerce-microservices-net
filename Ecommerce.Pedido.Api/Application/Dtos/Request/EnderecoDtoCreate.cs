@@ -1,4 +1,4 @@
-﻿namespace Ecommerce.Pedido.Api.Aplication.Dtos.Request;
+﻿namespace Ecommerce.Pedido.Api.Application.Dtos.Request;
 
 public sealed record EnderecoDtoCreate(
     string Logradouro,

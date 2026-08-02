@@ -1,4 +1,4 @@
-﻿using Ecommerce.Pedido.Api.Aplication.Dtos.Request;
+﻿using Ecommerce.Pedido.Api.Application.Dtos.Request;
 using Ecommerce.Pedido.Api.Domain.Entity;
 using Ecommerce.Pedido.Api.Domain.Values.Objects;
 using PedidoEntity = Ecommerce.Pedido.Api.Domain.Entity.Pedido;
@@ -9,7 +9,7 @@ public static class PedidoCreateMapper
 {
     public static PedidoEntity ToEntity(this PedidoDtoCreate request)
     {
-        var cpf = new ObjectCPF(request.CpfCliente.Valor);
+        var cpf = new ObjectCPF(request.CpfCliente);
 
         var endereco = new EnderecoEntrega(
             request.EnderecoEntrega.Logradouro,

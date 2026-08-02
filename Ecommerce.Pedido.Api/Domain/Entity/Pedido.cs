@@ -68,7 +68,15 @@ public sealed class Pedido
             (StatusPedido.Aprovado, StatusPedido.ACaminho) => StatusPedido.ACaminho,
 
             // Qualquer outra combinação não permitida dispara exceção de domínio!
-            _ => throw new DomainException($"Transição inválida de status: de {Status} para {novoStatus}.")
+            _ => throw new DomainException(DomainMessages.PedidoMSG.AlteracaoNaoPermitida)
         };
+    }
+
+    public void Cancelar()
+    {
+        if (Status == StatusPedido.ACaminho || Status == StatusPedido.Entregue)
+            throw new DomainException(DomainMessages.PedidoMSG.AlteracaoNaoPermitida);
+
+        Status = StatusPedido.Cancelado;
     }
 }

@@ -10,5 +10,8 @@ public interface IPedidoRepository
 
     Task<IEnumerable<PedidoEntity>> ObterTodosAsync(CancellationToken cancellationToken = default);
 
+    Task<IEnumerable<PedidoEntity>> ObterComFiltroAsync(StatusPedido? status, int pagina = 1, int tamanhoPagina = 10,
+        CancellationToken cancellationToken = default);
+
     Task AtualizarAsync(PedidoEntity pedido, CancellationToken cancellationToken = default);
 }
