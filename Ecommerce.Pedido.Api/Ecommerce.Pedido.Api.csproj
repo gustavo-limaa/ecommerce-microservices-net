@@ -23,6 +23,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="Aplication\Mappers\ForUpdate\" />
+	  <Folder Include="Application\Mappers\ForUpdate\" />
 	</ItemGroup>
 </Project>

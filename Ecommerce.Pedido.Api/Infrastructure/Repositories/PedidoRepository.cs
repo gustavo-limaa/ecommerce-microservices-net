@@ -28,6 +28,27 @@ public sealed class PedidoRepository(AppDbContext context) : IPedidoRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IEnumerable<PedidoEntity>> ObterComFiltroAsync(
+    StatusPedido? status,
+    int pagina = 1,
+    int tamanhoPagina = 10,
+    CancellationToken cancellationToken = default)
+    {
+        IQueryable<PedidoEntity> query = context.Pedidos.Include(p => p.Itens);
+
+        if (status.HasValue)
+        {
+            query = query.Where(p => p.Status == status.Value);
+        }
+
+        return await query
+            .AsNoTracking()
+            .OrderByDescending(p => p.DataCriacao)
+            .Skip((pagina - 1) * tamanhoPagina)
+            .Take(tamanhoPagina)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task AtualizarAsync(PedidoEntity pedido, CancellationToken cancellationToken = default)
     {
         context.Pedidos.Update(pedido);
