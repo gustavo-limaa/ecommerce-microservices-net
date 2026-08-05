@@ -30,6 +30,8 @@ public sealed class Pedido
     public Pedido(Guid clienteId, ObjectCPF
          cpfCliente, EnderecoEntrega enderecoEntrega)
     {
+        if (_itens.Count == 0)
+            throw new DomainException(DomainMessages.PedidoMSG.ItensObrigatorio);
         if (clienteId == Guid.Empty)
             throw new DomainException(DomainMessages.PedidoMSG.ClienteInvalido);
 

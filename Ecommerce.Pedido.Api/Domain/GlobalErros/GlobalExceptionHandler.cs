@@ -1,9 +1,8 @@
-﻿using Ecommerce.Pedido.Api.Domain.GlobalErros; // 👈 Ajuste o namespace para a sua pasta de erros
-using Microsoft.AspNetCore.Diagnostics;
+﻿using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using applicate = Ecommerce.Pedido.Api.Domain.GlobalErros.ApplicationException;
 
-namespace Ecommerce.Pedido.Api.Middlewares;
+namespace Ecommerce.Pedido.Api.Domain.GlobalErros;
 
 public class GlobalExceptionHandler : IExceptionHandler
 {
