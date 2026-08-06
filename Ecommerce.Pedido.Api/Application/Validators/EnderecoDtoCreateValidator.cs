@@ -9,19 +9,19 @@ namespace Ecommerce.Pedido.Api.Application.Validators
         public EnderecoDtoCreateValidator()
         {
             RuleFor(x => x.Logradouro)
-                .NotEmpty().WithMessage(AplicationMessages.DadosInvalidos);
+                .NotEmpty().WithMessage(ApplicationMessages.DadosInvalidos);
             RuleFor(x => x.Numero)
-                .NotEmpty().WithMessage(AplicationMessages.DadosInvalidos);
+                .NotEmpty().WithMessage(ApplicationMessages.DadosInvalidos);
             RuleFor(x => x.Cidade)
-                .NotEmpty().WithMessage(AplicationMessages.DadosInvalidos);
+                .NotEmpty().WithMessage(ApplicationMessages.DadosInvalidos);
             RuleFor(x => x.Estado)
-                .NotEmpty().WithMessage(AplicationMessages.DadosInvalidos);
+                .NotEmpty().WithMessage(ApplicationMessages.DadosInvalidos);
             RuleFor(x => x.Cep)
-                .NotEmpty().WithMessage(AplicationMessages.DadosInvalidos);
+                .NotEmpty().WithMessage(ApplicationMessages.DadosInvalidos);
             RuleFor(x => x.Bairro)
-                .NotEmpty().WithMessage(AplicationMessages.DadosInvalidos);
+                .NotEmpty().WithMessage(ApplicationMessages.DadosInvalidos);
             RuleFor(x => x.complemento)
-                .NotEmpty().WithMessage(AplicationMessages.DadosInvalidos);
+                .NotEmpty().WithMessage(ApplicationMessages.DadosInvalidos);
         }
     }
 }

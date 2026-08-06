@@ -9,16 +9,16 @@ namespace Ecommerce.Pedido.Api.Application.Validators
         public ItemPedidoDtoCreateValidator()
         {
             RuleFor(x => x.ProdutoId)
-                .NotEmpty().WithMessage(AplicationMessages.DadosInvalidos)
-                .NotNull().WithMessage(AplicationMessages.DadosInvalidos);
+                .NotEmpty().WithMessage(ApplicationMessages.DadosInvalidos)
+                .NotNull().WithMessage(ApplicationMessages.DadosInvalidos);
 
             RuleFor(x => x.Quantidade)
-                .GreaterThan(0).WithMessage(AplicationMessages.DadosInvalidos);
+                .GreaterThan(0).WithMessage(ApplicationMessages.DadosInvalidos);
             RuleFor(x => x.PrecoUnitario)
-                .GreaterThan(0).WithMessage(AplicationMessages.DadosInvalidos);
+                .GreaterThan(0).WithMessage(ApplicationMessages.DadosInvalidos);
             RuleFor(x => x.NomeProduto)
-                .NotEmpty().WithMessage(AplicationMessages.DadosInvalidos)
-                .NotNull().WithMessage(AplicationMessages.DadosInvalidos);
+                .NotEmpty().WithMessage(ApplicationMessages.DadosInvalidos)
+                .NotNull().WithMessage(ApplicationMessages.DadosInvalidos);
         }
     }
 }

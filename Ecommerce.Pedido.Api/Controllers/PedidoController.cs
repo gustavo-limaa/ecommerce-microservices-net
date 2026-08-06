@@ -30,7 +30,7 @@ public class PedidosController : ControllerBase
         var response = await _pedidoService.ObterPedidoPorIdAsync(id, cancellationToken);
 
         if (response is null)
-            return NotFound(new { mensagem = AplicationMessages.Pedido.NaoEncontrado });
+            return NotFound(new { mensagem = ApplicationMessages.Pedido.NaoEncontrado });
 
         return Ok(response);
     }

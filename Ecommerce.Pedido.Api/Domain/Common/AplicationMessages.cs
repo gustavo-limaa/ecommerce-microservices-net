@@ -1,6 +1,6 @@
 ﻿namespace Ecommerce.Pedido.Api.Domain.Common
 {
-    public class AplicationMessages
+    public class ApplicationMessages
     {
         public const string NaoEncontrado = "The requested resource was not found.";
         public const string Conflito = "A conflict occurred with the current state of the resource.";

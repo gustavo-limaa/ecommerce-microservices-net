@@ -1,5 +1,8 @@
 ﻿using Ecommerce.Pedido.Api.Application.Dtos.Request;
+using Ecommerce.Pedido.Api.Domain.Common;
 using Ecommerce.Pedido.Api.Domain.Entity;
+using Ecommerce.Pedido.Api.Domain.GlobalErros;
+using Ecommerce.Pedido.Api.Domain.GlobalErros.Exceptions;
 using Ecommerce.Pedido.Api.Domain.Values.Objects;
 using PedidoEntity = Ecommerce.Pedido.Api.Domain.Entity.Pedido;
 
@@ -34,6 +37,8 @@ public static class PedidoCreateMapper
 
             pedido.AdicionarItem(item);
         }
+        if (pedido.Itens.Count == 0)
+            throw new DomainException(DomainMessages.PedidoMSG.ItensObrigatorio);
 
         return pedido;
     }

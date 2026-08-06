@@ -1,6 +1,10 @@
 ﻿using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using applicate = Ecommerce.Pedido.Api.Domain.GlobalErros.ApplicationException;
+using Microsoft.Extensions.Logging;
+using Ecommerce.Pedido.Api.Domain.Common;
+using Ecommerce.Pedido.Api.Domain.GlobalErros.Exceptions;
+using ApplicationMessages = Ecommerce.Pedido.Api.Domain.Common.ApplicationMessages;
 
 namespace Ecommerce.Pedido.Api.Domain.GlobalErros;
 
@@ -22,10 +26,15 @@ public class GlobalExceptionHandler : IExceptionHandler
 
         var (statusCode, title) = exception switch
         {
-            DomainException => (StatusCodes.Status400BadRequest, "Erro de Validação de Negócio"),
-            applicate => (StatusCodes.Status400BadRequest, "Erro na Aplicação"),
-            KeyNotFoundException => (StatusCodes.Status404NotFound, "Recurso Não Encontrado"),
-            _ => (StatusCodes.Status500InternalServerError, "Erro Interno no Servidor")
+            NotFoundException => (StatusCodes.Status404NotFound, ApplicationMessages.NaoEncontrado),
+            ConflictException => (StatusCodes.Status409Conflict, ApplicationMessages.Conflito),
+            BadRequestException => (StatusCodes.Status400BadRequest, ApplicationMessages.DadosInvalidos),
+            DomainException => (StatusCodes.Status400BadRequest, ApplicationMessages.DadosInvalidos),
+            UnauthorizedException => (StatusCodes.Status401Unauthorized, ApplicationMessages.SemAutorizacao),
+            ForbiddenException => (StatusCodes.Status403Forbidden, ApplicationMessages.SemPermissao),
+
+            // Fallback para exceções não tratadas
+            _ => (StatusCodes.Status500InternalServerError, ApplicationMessages.ErroInesperado)
         };
 
         var problemDetails = new ProblemDetails
@@ -37,7 +46,6 @@ public class GlobalExceptionHandler : IExceptionHandler
         };
 
         httpContext.Response.StatusCode = statusCode;
-
         await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
 
         return true;

@@ -9,20 +9,20 @@ public class PedidoDtoCreateValidator : AbstractValidator<PedidoDtoCreate>
     public PedidoDtoCreateValidator()
     {
         RuleFor(x => x.ClienteId)
-            .NotEmpty().WithMessage(AplicationMessages.NaoEncontrado
+            .NotEmpty().WithMessage(ApplicationMessages.NaoEncontrado
             );
 
         RuleFor(x => x.CpfCliente)
-            .NotEmpty().WithMessage(AplicationMessages.DadosInvalidos)
-            .Must(ValidarFormatoCpf).WithMessage(AplicationMessages.Conflito
+            .NotEmpty().WithMessage(ApplicationMessages.DadosInvalidos)
+            .Must(ValidarFormatoCpf).WithMessage(ApplicationMessages.Conflito
             );
 
         RuleFor(x => x.Itens)
-            .NotNull().WithMessage(AplicationMessages.DadosInvalidos)
-            .NotEmpty().WithMessage(AplicationMessages.DadosInvalidos);
+            .NotNull().WithMessage(ApplicationMessages.DadosInvalidos)
+            .NotEmpty().WithMessage(ApplicationMessages.DadosInvalidos);
 
         RuleFor(x => x.EnderecoEntrega)
-            .NotNull().WithMessage(AplicationMessages.DadosInvalidos)
+            .NotNull().WithMessage(ApplicationMessages.DadosInvalidos)
             .SetValidator(new EnderecoDtoCreateValidator());
 
         RuleForEach(x => x.Itens)

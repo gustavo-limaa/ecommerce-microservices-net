@@ -33,4 +33,11 @@ public abstract class TestBase : IClassFixture<PedidoWebApplicationFactory>, IAs
     {
         return await Client.GetAsync(url);
     }
+
+    protected async Task<HttpResponseMessage> PatchAsync(string url, HttpContent? content = null)
+    {
+        // Se não passar body, cria um conteúdo JSON vazio para o HttpClient não reclamar
+        content ??= new StringContent("{}", System.Text.Encoding.UTF8, "application/json");
+        return await Client.PatchAsync(url, content);
+    }
 }

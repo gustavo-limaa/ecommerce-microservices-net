@@ -1,5 +1,6 @@
 ﻿using Ecommerce.Pedido.Api.Domain.Common;
 using Ecommerce.Pedido.Api.Domain.GlobalErros;
+using Ecommerce.Pedido.Api.Domain.GlobalErros.Exceptions;
 using System.Text.RegularExpressions;
 
 namespace Ecommerce.Pedido.Api.Domain.Values.Objects;
