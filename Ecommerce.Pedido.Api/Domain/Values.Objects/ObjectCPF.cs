@@ -2,6 +2,7 @@
 
 using Ecommerce.Pedido.Api.Domain.Common;
 using Ecommerce.Pedido.Api.Domain.GlobalErros;
+using Ecommerce.Pedido.Api.Domain.GlobalErros.Exceptions;
 using System.Text.RegularExpressions;
 
 public partial record ObjectCPF

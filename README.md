@@ -1,56 +1,69 @@
-# 🛒 Arquitetura de Microsserviços Orientada a Eventos para E-Commerce
+# 🛒 Ecommerce Microservices - Pedido API
 
-Este repositório contém uma **Solução de Microsserviços Orientada a Eventos** construída com **.NET**, **RabbitMQ**, **MySQL** e **ASP.NET Core**.
+![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)
+![C#](https://img.shields.io/badge/C%23-13-239120?logo=csharp)
+![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql)
+![xUnit](https://img.shields.io/badge/Tests-xUnit%20%26%20FluentAssertions-512BD4)
 
-O objetivo deste projeto é simular o ecossistema backend de um e-commerce real, trabalhando com estruturas complexas de dados de domínio, processamento assíncrono de eventos, isolamento de banco de dados por serviço e monitoramento com Health Checks em nível de produção.
-
----
-
-## 🏗️ Arquitetura do Sistema
-
-A solução implementa o padrão **Database per Service** (Um Banco de Dados por Serviço) e se comunica de forma assíncrona através de um Message Broker (RabbitMQ):
-
-                  [ Cliente / Postman ]
-                            │
-                            ▼
-     ┌──────────────────────────────────────────────┐
-     │            Ecommerce.Pedido.Api              │
-     │  - API REST para criação de Pedidos          │
-     │  - Entidades complexas (Itens, Endereço)     │
-     │  - Banco MySQL Isolado (`orders_db`)        │
-     └──────────────────────┬───────────────────────┘
-                            │
-                            ▼
-                   ┌─────────────────┐
-                   │ RabbitMQ Broker │
-                   │ (Fila de Event) │
-                   └────────┬────────┘
-                            │
-                            ▼
-     ┌──────────────────────────────────────────────┐
-     │          Ecommerce.Pagamento.Worker          │
-     │  - Background Service (Consumidor)           │
-     │  - Processamento Assíncrono de Pagamento     │
-     │  - Banco de Dados Isolado (`payments_db`)    │
-     └──────────────────────────────────────────────┘
-
-     ---
-
-## 🚀 Principais Recursos e Práticas de Engenharia
-
-* **Arquitetura Orientada a Eventos (EDA):** Comunicação assíncrona entre serviços via RabbitMQ, garantindo alta disponibilidade e resiliência.
-* **Database per Service:** Desacoplamento total da camada de persistência (`orders_db` e `payments_db`).
-* **Domínio com Dados Complexos:** Objetos ricos contendo coleções aninhadas (Itens do Pedido), Value Objects (Endereço de Entrega) e subtotais calculados.
-* **Observabilidade & Health Checks:** Endpoints customizados (`/healthz`) que retornam JSON estruturado com o status individual do MySQL, EF Core e RabbitMQ.
-* **Clean Code & SOLID:** Injeção de dependência modularizada, separação por casos de uso e middlewares globais para tratamento de exceções.
+Microserviço robusto para gerenciamento de Pedidos desenvolvido com **ASP.NET Core**, seguindo as práticas de **Domain-Driven Design (DDD)**, **Clean Architecture** e engenharia orientada a testes (**TDD**).
 
 ---
 
-## 🛠️ Tecnologias Utilizadas
+## 🚀 Principais Funcionalidades
 
-* **Linguagem:** C# / .NET 8+
-* **Framework Web:** ASP.NET Core Web API & Worker Services (`BackgroundService`)
-* **ORMs & Banco de Dados:** Entity Framework Core, MySQL
-* **Mensageria:** RabbitMQ (`RabbitMQ.Client`)
-* **Observabilidade:** `AspNetCore.HealthChecks`
-     
+* **Order Lifecycle Management**: Gerenciamento do ciclo de vida dos pedidos (criação, busca e cancelamento de status).
+* **Input Validation**: Validações de entrada nos DTOs utilizando **FluentValidation** para garantir a integridade dos contratos de requisição.
+* **Domain Protections**: Regras e invariantes de negócio protegidas diretamente dentro das Entidades de Domínio (ex: impedir pedidos sem itens ou transições de status inválidas).
+* **Global Error Handling**: Tratamento centralizado de exceções retornando respostas padronizadas no formato **RFC 7807 (ProblemDetails)**.
+* **Resilient Testing Suite**: Suíte de testes de integração cobrindo fluxos HTTP com execução isolada e massa de dados fake.
+
+---
+
+## 🛠️ Tech Stack
+
+* **Framework**: .NET 10.0
+* **Persistence**: Entity Framework Core 9.0 + MySQL
+* **Validations**: FluentValidation.AspNetCore
+* **Testing Stack**:
+  * **xUnit** (Testing Framework)
+  * **FluentAssertions** (Fluent Assertions)
+  * **Bogus** (Data Generation / Fakers)
+  * **Microsoft.AspNetCore.Mvc.Testing** (`WebApplicationFactory`)
+
+---
+
+## 🏛️ Hierarquia de Exceções e HTTP Status Mapping
+
+Os erros capturados pelo `GlobalExceptionHandler` são mapeados de forma limpa para os códigos de resposta HTTP padronizados:
+
+| Custom Exception | HTTP Status | Descrição |
+| :--- | :--- | :--- |
+| `BadRequestException` / `DomainException` | **400 Bad Request** | Erros de sintaxe na requisição ou violação de regras de negócio. |
+| `UnauthorizedException` | **401 Unauthorized** | Falta de identificação ou Token JWT expirado/inválido. |
+| `ForbiddenException` | **403 Forbidden** | Usuário autenticado, mas sem permissão/role para a ação. |
+| `NotFoundException` | **404 Not Found** | O recurso ou ID do pedido solicitado não existe no banco. |
+| `ConflictException` | **409 Conflict** | Conflito de estado do recurso (ex: tentar cancelar pedido já cancelado). |
+| `Unhandled Exceptions` | **500 Internal Server Error** | Erros não previstos no servidor. |
+
+---
+
+## 🧪 Arquitetura dos Testes de Integração
+
+A suíte de testes de integração (`Ecommerce.Integration.Tests`) valida os endpoints contra um banco de dados real em ambiente de teste utilizando `WebApplicationFactory`.
+
+### Estratégias de Teste Utilizadas:
+* **Test Isolation**: Adoção do atributo `[Collection("Integration Tests")]` para garantir a execução sequencial e evitar concorrência no banco de dados.
+* **Resilient Assertions**: Validação baseada em presença de IDs (`.Should().Contain(...)`) em vez de checagem global de contagem de linhas no banco.
+* **Data Factories**: Geração automatizada de dados falsos com a biblioteca **Bogus**.
+
+---
+
+## ⚙️ Como Executar o Projeto
+
+### Pré-requisitos
+* .NET 10 SDK instalado
+* Instância do MySQL rodando localmente ou via Docker
+
+### 1. Executar as Migrations do Banco de Dados
+```bash
+dotnet ef database update --project Ecommerce.Pedido.Api

@@ -3,7 +3,10 @@ using Ecommerce.Pedido.Api.Application.Dtos.Responses;
 using Ecommerce.Pedido.Api.Application.Mappers.ForEntities;
 using Ecommerce.Pedido.Api.Application.Mappers.ForResponse;
 using Ecommerce.Pedido.Api.Domain.Common;
+using Ecommerce.Pedido.Api.Domain.GlobalErros;
+using Ecommerce.Pedido.Api.Domain.GlobalErros.Exceptions;
 using Ecommerce.Pedido.Api.Domain.Interface;
+using Aplication = Ecommerce.Pedido.Api.Domain.GlobalErros.Exceptions.BadRequestException;
 
 namespace Ecommerce.Pedido.Api.Application.Service;
 
@@ -53,9 +56,15 @@ public class ServicePedido
     public async Task CancelarAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var pedido = await _pedidoRepository.ObterPorIdAsync(id, cancellationToken);
+        if (Guid.Empty.Equals(id))
+            throw new NotFoundException(ApplicationMessages.Pedido.NaoEncontrado);
 
         if (pedido is null)
-            throw new ApplicationException(AplicationMessages.Pedido.NaoEncontrado);
+            throw new NotFoundException(ApplicationMessages.Pedido.NaoEncontrado);
+        if (pedido.Status == StatusPedido.Cancelado)
+            throw new ConflictException(ApplicationMessages.Pedido.StatusInvalidoParaAtualizacao);
+        if (pedido.Status != StatusPedido.Processando)
+            throw new BadRequestException(ApplicationMessages.Pedido.StatusInvalidoParaAtualizacao);
 
         pedido.Cancelar();
 

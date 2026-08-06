@@ -37,6 +37,8 @@
             public const string EnderecoObrigatorio = "O Endereço e Obrigatorio";
             public const string ClienteInvalido = " O ID Informado Do Cliente Esta Invalido ";
             public const string AlteracaoNaoPermitida = "Apos O Envio das Inforemançao Nao Pode Ser Parado, So Apos O Termino Da Açao";
+
+            public const string ItensObrigatorio = "O pedido deve conter pelo menos um item.";
         }
     }
 }

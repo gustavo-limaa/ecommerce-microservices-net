@@ -1,5 +1,6 @@
 using Ecommerce.Pedido.Api;
-using Ecommerce.Pedido.Api.Middlewares;
+using Ecommerce.Pedido.Api.Domain.GlobalErros;
+using FluentValidation;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -8,7 +9,7 @@ builder.Services.AddProblemDetails();
 builder.Services
     .AddInfrastructure(builder.Configuration)
     .AddApplication();
-
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 

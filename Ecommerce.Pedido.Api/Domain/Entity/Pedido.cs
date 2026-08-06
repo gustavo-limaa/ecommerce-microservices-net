@@ -1,4 +1,5 @@
 ﻿using Ecommerce.Pedido.Api.Domain.Common;
+using Ecommerce.Pedido.Api.Domain.GlobalErros.Exceptions;
 using Ecommerce.Pedido.Api.Domain.Values.Objects;
 using global::Ecommerce.Pedido.Api.Domain.GlobalErros;
 
@@ -75,6 +76,9 @@ public sealed class Pedido
     public void Cancelar()
     {
         if (Status == StatusPedido.ACaminho || Status == StatusPedido.Entregue)
+            throw new DomainException(DomainMessages.PedidoMSG.AlteracaoNaoPermitida);
+
+        if (Status == StatusPedido.Cancelado)
             throw new DomainException(DomainMessages.PedidoMSG.AlteracaoNaoPermitida);
 
         Status = StatusPedido.Cancelado;

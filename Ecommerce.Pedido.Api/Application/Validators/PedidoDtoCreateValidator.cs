@@ -1,0 +1,36 @@
+﻿using Ecommerce.Pedido.Api.Application.Dtos.Request;
+using Ecommerce.Pedido.Api.Domain.Common;
+using FluentValidation;
+
+namespace Ecommerce.Pedido.Api.Application.Validators;
+
+public class PedidoDtoCreateValidator : AbstractValidator<PedidoDtoCreate>
+{
+    public PedidoDtoCreateValidator()
+    {
+        RuleFor(x => x.ClienteId)
+            .NotEmpty().WithMessage(ApplicationMessages.NaoEncontrado
+            );
+
+        RuleFor(x => x.CpfCliente)
+            .NotEmpty().WithMessage(ApplicationMessages.DadosInvalidos)
+            .Must(ValidarFormatoCpf).WithMessage(ApplicationMessages.Conflito
+            );
+
+        RuleFor(x => x.Itens)
+            .NotNull().WithMessage(ApplicationMessages.DadosInvalidos)
+            .NotEmpty().WithMessage(ApplicationMessages.DadosInvalidos);
+
+        RuleFor(x => x.EnderecoEntrega)
+            .NotNull().WithMessage(ApplicationMessages.DadosInvalidos)
+            .SetValidator(new EnderecoDtoCreateValidator());
+
+        RuleForEach(x => x.Itens)
+            .SetValidator(new ItemPedidoDtoCreateValidator());
+    }
+
+    private bool ValidarFormatoCpf(string cpf)
+    {
+        return !string.IsNullOrWhiteSpace(cpf) && cpf.Length == 11;
+    }
+}
