@@ -18,7 +18,7 @@ public class TestObjectEmail
     [Fact]
     public void Criar_DeveSanitizarEGuardarEmail_QuandoValido()
     {
-        // Act (Email com espaços e letras maiúsculas)
+        // Act
         var email = new ObjectEmail("  USER.TEST@DOMAIN.COM  ");
 
         // Assert

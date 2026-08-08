@@ -6,10 +6,10 @@ namespace Ecommerce.Integration.Tests.Pedido.Integration.ValueObjects;
 public class TestObjectCPF
 {
     [Theory]
-    [InlineData("11111111111")] // Sequência repetida
-    [InlineData("12345678900")] // Dígito verificador inválido
-    [InlineData("12345")]       // Tamanho incorreto
-    [InlineData("")]            // Em branco
+    [InlineData("11111111111")]
+    [InlineData("12345678900")]
+    [InlineData("12345")]
+    [InlineData("")]
     public void Criar_DeveLancarDomainException_QuandoCpfInvalido(string cpfInvalido)
     {
         Assert.Throws<DomainException>(() => new ObjectCPF(cpfInvalido));

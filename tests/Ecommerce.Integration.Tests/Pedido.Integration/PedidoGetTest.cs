@@ -23,15 +23,14 @@ public class PedidoGetTest : TestBase
         // Arrange (Gera o DTO válido para o POST)
         var requestDto = DataFactory.PedidoDtoCreateFaker.Generate();
 
-        // Insere o pedido via POST na API real de testes
         var responsePost = await PostAsync("/api/pedidos", requestDto);
         responsePost.EnsureSuccessStatusCode();
-        responsePost.StatusCode.Should().Be(HttpStatusCode.Created); // Garante que foi inserido primeiro
+        responsePost.StatusCode.Should().Be(HttpStatusCode.Created);
 
         var pedidoCriado = await responsePost.Content.ReadFromJsonAsync<PedidoDtoResponse>();
         pedidoCriado.Should().NotBeNull();
 
-        // Act (Busca o pedido recém-criado pelo ID)
+        // Act
         var response = await GetAsync($"/api/pedidos/{pedidoCriado!.Id}");
 
         // Assert
