@@ -2,6 +2,7 @@
 using Ecommerce.Pedido.Api.Application.Service;
 using Ecommerce.Pedido.Api.Domain.GlobalErros.Exceptions;
 using Ecommerce.Pedido.Api.Domain.Interface;
+using Ecommerce.Pedido.Api.Mensageria.Services;
 using EcommerceDataTest;
 using Moq;
 using PedidoE = Ecommerce.Pedido.Api.Domain.Entity.Pedido;
@@ -12,14 +13,16 @@ public class ServicePedidoTests
 {
     private readonly Mock<IPedidoRepository> _repositoryMock;
     private readonly ServicePedido _service;
+    private readonly Mock<IEventProcessor> _eventProcessorMock;
 
     public ServicePedidoTests()
     {
         // 1. Mockamos o repositório
         _repositoryMock = new Mock<IPedidoRepository>();
+        _eventProcessorMock = new Mock<IEventProcessor>();
 
         // 2. Injetamos o mock no Service
-        _service = new ServicePedido(_repositoryMock.Object);
+        _service = new ServicePedido(_repositoryMock.Object, _eventProcessorMock.Object);
     }
 
     [Fact]

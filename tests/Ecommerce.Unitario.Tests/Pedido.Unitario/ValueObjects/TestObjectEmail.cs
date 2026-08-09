@@ -1,7 +1,7 @@
 ﻿using Ecommerce.Pedido.Api.Domain.GlobalErros.Exceptions;
 using Ecommerce.Pedido.Api.Domain.Values.Objects;
 
-namespace Ecommerce.Integration.Tests.Pedido.Integration.ValueObjects;
+namespace Ecommerce.UnitarioTests.Pedido.Unitario.ValueObjects;
 
 public class TestObjectEmail
 {

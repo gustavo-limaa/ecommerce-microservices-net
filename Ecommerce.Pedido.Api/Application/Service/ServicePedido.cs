@@ -6,6 +6,8 @@ using Ecommerce.Pedido.Api.Domain.Common;
 using Ecommerce.Pedido.Api.Domain.GlobalErros;
 using Ecommerce.Pedido.Api.Domain.GlobalErros.Exceptions;
 using Ecommerce.Pedido.Api.Domain.Interface;
+using Ecommerce.Pedido.Api.Mensageria.Events;
+using Ecommerce.Pedido.Api.Mensageria.Services;
 using Aplication = Ecommerce.Pedido.Api.Domain.GlobalErros.Exceptions.BadRequestException;
 
 namespace Ecommerce.Pedido.Api.Application.Service;
@@ -13,10 +15,12 @@ namespace Ecommerce.Pedido.Api.Application.Service;
 public class ServicePedido
 {
     private readonly IPedidoRepository _pedidoRepository;
+    private readonly IEventProcessor _eventProcessor;
 
-    public ServicePedido(IPedidoRepository pedidoRepository)
+    public ServicePedido(IPedidoRepository pedidoRepository, IEventProcessor eventProcessor)
     {
         _pedidoRepository = pedidoRepository;
+        _eventProcessor = eventProcessor;
     }
 
     public async Task<PedidoDtoResponse> AdicionarPedidoAsync(PedidoDtoCreate request, CancellationToken cancellationToken = default)
@@ -24,6 +28,10 @@ public class ServicePedido
         var pedido = request.ToEntity();
 
         await _pedidoRepository.AdicionarAsync(pedido, cancellationToken);
+
+        var evento = new PedidoCriadoEvent(PedidoId: pedido.Id, ClienteId: pedido.ClienteId, ValorTotal: pedido.ValorTotal.Valor, DataCriacao: pedido.DataCriacao);
+
+        await _eventProcessor.PublicarEventoAsync(evento, "pedido-criado-queue", cancellationToken);
 
         return pedido.ToResponse();
     }

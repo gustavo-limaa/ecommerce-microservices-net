@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Ecommerce.Integration.Tests.Pedido.Integration.ValueObjects;
+namespace Ecommerce.UnitarioTests.Pedido.Unitario.ValueObjects;
 
 public class TestValorMonetario
 {
