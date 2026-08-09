@@ -1,15 +1,17 @@
 ﻿using Ecommerce.Pedido.Api.Infrastructure.Data;
+using Ecommerce.Pedido.Api.Mensageria.Services;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using MySqlConnector;
 using Respawn;
-using RespawnTable = Respawn.Graph.Table;
 using System.Data.Common;
 using Xunit;
+using RespawnTable = Respawn.Graph.Table;
 
 namespace Ecommerce.Integration.Tests.Setup;
 
@@ -22,14 +24,12 @@ public class PedidoWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
     {
         builder.UseEnvironment("Testing");
 
+        // 1. Configuração de AppConfiguration (User Secrets & ConnectionStrings)
         builder.ConfigureAppConfiguration((context, config) =>
         {
-            // 1. Carrega os User Secrets do próprio projeto de testes
             config.AddUserSecrets<PedidoWebApplicationFactory>();
 
             var settings = config.Build();
-
-            // 2. Busca a string do Secret ou usa um fallback caso não encontre
             var connectionString = settings.GetConnectionString("TestConnection");
 
             if (string.IsNullOrEmpty(connectionString))
@@ -37,23 +37,41 @@ public class PedidoWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
                 throw new InvalidOperationException("A String de Conexão 'TestConnection' não foi configurada nos User Secrets!");
             }
 
-            // 3. Sobrescreve a DefaultConnection para a aplicação usar o banco de testes
             config.AddInMemoryCollection(new Dictionary<string, string?>
-        {
-            { "ConnectionStrings:DefaultConnection", connectionString }
-        });
+            {
+                { "ConnectionStrings:DefaultConnection", connectionString }
+            });
         });
 
-        // ... resto das configurações dos serviços
+        // 2. Configuração de Services (Substituição do RabbitMQ por Mock)
+        builder.ConfigureServices(services =>
+        {
+            // Remove o registro real do RabbitMQ
+            var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IEventProcessor));
+            if (descriptor != null)
+            {
+                services.Remove(descriptor);
+            }
+
+            // Cria o Mock que simula o envio do evento
+            var eventProcessorMock = new Mock<IEventProcessor>();
+            eventProcessorMock
+                .Setup(e => e.PublicarEventoAsync(
+                    It.IsAny<It.IsAnyType>(),
+                    It.IsAny<string>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
+            // Registra o Mock como Singleton no container de testes
+            services.AddSingleton(eventProcessorMock.Object);
+        });
     }
 
-    // 🚀 IAsyncLifetime: Executa ANTES de rodar a suíte de testes
     public async Task InitializeAsync()
     {
         using var scope = Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        // Garante que o banco de testes existe e tá com todas as migrations aplicadas
         await context.Database.MigrateAsync();
 
         var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
@@ -62,7 +80,6 @@ public class PedidoWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
         _dbConnection = new MySqlConnection(connectionString);
         await _dbConnection.OpenAsync();
 
-        // Configura o Respawn para ressetar os dados da tabela em milissegundos
         _respawner = await Respawner.CreateAsync(_dbConnection, new RespawnerOptions
         {
             DbAdapter = DbAdapter.MySql,
@@ -70,7 +87,6 @@ public class PedidoWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
         });
     }
 
-    // Método auxiliar para resetar a base entre cada teste
     public async Task ResetDatabaseAsync()
     {
         if (_dbConnection != null && _respawner != null)
@@ -79,7 +95,6 @@ public class PedidoWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
         }
     }
 
-    // Executa no final da suíte de testes para fechar a conexão
     public new async Task DisposeAsync()
     {
         if (_dbConnection != null)

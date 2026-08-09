@@ -43,6 +43,14 @@ public static class DataFactory
         return pedido;
     }
 
+    public static Faker<ItemPedido> ItemPedidoFaker => new Faker<ItemPedido>("pt_BR")
+        .CustomInstantiator(f => new ItemPedido(
+            produtoId: f.Random.Guid(),
+            nomeProduto: f.Commerce.ProductName(),
+            precoUnitario: new ValorMonetario(f.Random.Decimal(10, 500)),
+            quantidade: f.Random.Number(1, 5)
+        ));
+
     #region DTOs de Request
 
     public static Faker<PedidoDtoCreate> PedidoDtoCreateFaker => new Faker<PedidoDtoCreate>("pt_BR")

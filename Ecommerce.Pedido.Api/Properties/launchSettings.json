@@ -21,5 +21,11 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     }
+  },
+  "RabbitMqSettings": {
+    "Host": "localhost",
+    "Port": 5672,
+    "Username": "",
+    "Password": ""
   }
 }
