@@ -58,7 +58,21 @@ services:
       - rabbitmq
     networks:
       - ecommerce-network
-
+  catalogo.api:
+    build:
+      context: .
+      dockerfile: Ecommerce.Catalogo.Api/Dockerfile
+    container_name: ecommerce-catalogo-api
+    ports:
+      - "7208:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=Ecommerce_Catalogo_DB;Uid=root;Pwd=${MYSQL_ROOT_PASS};
+    depends_on:
+      - mysql
+    networks:
+      - ecommerce-network
+      
 networks:
   ecommerce-network:
     driver: bridge
