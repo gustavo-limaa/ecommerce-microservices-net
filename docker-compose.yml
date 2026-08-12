@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: ecommerce-mysql
+    ports:
+      - "${MYSQL_PORT}:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASS}
+      MYSQL_DATABASE: ${MYSQL_DB_NAME}
+    networks:
+      - ecommerce-network
+
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: ecommerce-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    networks:
+      - ecommerce-network
+
+  pedido.api:
+    build:
+      context: .
+      dockerfile: Ecommerce.Pedido.Api/Dockerfile
+    container_name: ecommerce-pedido-api
+    ports:
+      - "8080:8080"
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=mysql;Database=${MYSQL_DB_NAME};Uid=root;Pwd=${MYSQL_ROOT_PASS};
+      - RabbitMqSettings__Host=rabbitmq
+      - RabbitMqSettings__Port=5672
+      - RabbitMqSettings__Username=${RABBITMQ_USER}
+      - RabbitMqSettings__Password=${RABBITMQ_PASS}
+    depends_on:
+      - mysql
+      - rabbitmq
+    networks:
+      - ecommerce-network
+
+  pagamento.worker:
+    build:
+      context: .
+      dockerfile: Ecommerce.Pagamento.Worker/Dockerfile
+    container_name: ecommerce-pagamento-worker
+    environment:
+      - RabbitMqSettings__Host=rabbitmq
+      - RabbitMqSettings__Port=5672
+      - RabbitMqSettings__Username=${RABBITMQ_USER}
+      - RabbitMqSettings__Password=${RABBITMQ_PASS}
+    depends_on:
+      - rabbitmq
+    networks:
+      - ecommerce-network
+
+networks:
+  ecommerce-network:
+    driver: bridge

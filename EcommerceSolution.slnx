@@ -4,6 +4,7 @@
     <Project Path="tests/Ecommerce.Unitario.Tests/Ecommerce.UnitarioTests.csproj" />
     <Project Path="tests/EcommerceDataTest/EcommerceDataTest.csproj" />
   </Folder>
+  <Project Path="Ecommerce.Catalogo.Api/Ecommerce.Catalogo.Api.csproj" />
   <Project Path="Ecommerce.Pagamento.Worker/Ecommerce.Pagamento.Worker.csproj" />
   <Project Path="Ecommerce.Pedido.Api/Ecommerce.Pedido.Api.csproj" />
 </Solution>
