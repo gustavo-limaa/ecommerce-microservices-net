@@ -20,6 +20,7 @@ public static class DependencyInjection
 
         services.AddScoped<IPedidoRepository, PedidoRepository>();
         services.AddScoped<IEventProcessor, RabbitMqEventProcessor>();
+        services.AddScoped<IProdutoSincronizadoRepository, ProdutoSincronizadoRepository>();
         services.Configure<RabbitMqSettings>(configuration.GetSection("RabbitMqSettings"));
         return services;
     }

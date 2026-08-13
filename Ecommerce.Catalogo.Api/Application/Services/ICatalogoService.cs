@@ -14,7 +14,7 @@ public interface ICatalogoService
 
     Task<ProdutoResponseDTO> ObterProdutoPorIdAsync(Guid id);
 
-    Task<ProdutoResponseDTO> CriarProdutoAsync(CriarProdutoDTO dto);
+    Task<ProdutoResponseDTO> CriarProdutoAsync(CriarProdutoDTO dto, CancellationToken cancellationToken = default);
 
     Task AtualizarEstoqueAsync(Guid id, int quantidade);
 }

@@ -1,6 +1,8 @@
 ﻿using Ecommerce.Catalogo.Api.Application.DTOs;
 using Ecommerce.Catalogo.Api.Domain.GlobalErros.ErrosMassege;
 using Ecommerce.Catalogo.Api.Domain.Interfaces;
+using Ecommerce.Catalogo.Api.Mensageria.Events;
+using Ecommerce.Catalogo.Api.Mensageria.Services;
 using global::Ecommerce.Catalogo.Api.Domain.Entity;
 using global::Ecommerce.Catalogo.Api.Domain.GlobalErros.Exceptions;
 
@@ -10,11 +12,13 @@ public class CatalogoService : ICatalogoService
 {
     private readonly IProdutoRepository _produtoRepository;
     private readonly ICategoriaRepository _categoriaRepository;
+    private readonly IEventProcessor _eventProcessor;
 
-    public CatalogoService(IProdutoRepository produtoRepository, ICategoriaRepository categoriaRepository)
+    public CatalogoService(IProdutoRepository produtoRepository, ICategoriaRepository categoriaRepository, IEventProcessor eventProcessor)
     {
         _produtoRepository = produtoRepository;
         _categoriaRepository = categoriaRepository;
+        _eventProcessor = eventProcessor;
     }
 
     public async Task<IEnumerable<CategoriaResponseDTO>> ObterCategoriasAsync()
@@ -49,7 +53,7 @@ public class CatalogoService : ICatalogoService
         );
     }
 
-    public async Task<ProdutoResponseDTO> CriarProdutoAsync(CriarProdutoDTO dto)
+    public async Task<ProdutoResponseDTO> CriarProdutoAsync(CriarProdutoDTO dto, CancellationToken cancellationToken = default)
     {
         var categoria = await _categoriaRepository.ObterPorIdAsync(dto.CategoriaId)
             ?? throw new NotFoundException(ApplicationMessages.NaoEncontrado);
@@ -57,6 +61,9 @@ public class CatalogoService : ICatalogoService
         var produto = new Produto(dto.Nome, dto.Descricao, dto.Preco, dto.Estoque, dto.CategoriaId);
         await _produtoRepository.AdicionarAsync(produto);
 
+        var evento = new ProdutoCriadoEvent(Id: produto.Id, Nome: produto.Nome, Preco: produto.Preco, Estoque: produto.Estoque, CategoriaId: produto.CategoriaId);
+
+        await _eventProcessor.PublicarEventoAsync(evento, "produto-criado-queue", cancellationToken);
         return new ProdutoResponseDTO(
             produto.Id, produto.Nome, produto.Descricao, produto.Preco, produto.Estoque, produto.Ativo, categoria.Id, categoria.Nome
         );
