@@ -54,4 +54,9 @@ public sealed class PedidoRepository(AppDbContext context) : IPedidoRepository
         context.Pedidos.Update(pedido);
         await context.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task SaveAsync(CancellationToken cancellationToken = default)
+    {
+        await context.SaveChangesAsync(cancellationToken);
+    }
 }

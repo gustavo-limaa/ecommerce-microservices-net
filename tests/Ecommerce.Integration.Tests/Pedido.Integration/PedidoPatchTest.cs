@@ -12,8 +12,8 @@ using System.Threading.Tasks;
 
 namespace Ecommerce.Integration.Tests.Pedido.Integration;
 
-[Collection("Integration Tests")]
-public class PedidoPatchTest : TestBase
+[Collection("PedidoTestCollection")]
+public class PedidoPatchTest : PedidoTestBase
 {
     public PedidoPatchTest(PedidoWebApplicationFactory factory) : base(factory)
     {
@@ -56,14 +56,20 @@ public class PedidoPatchTest : TestBase
         // Arrange
         var pedido = DataFactory.PedidoDtoCreateFaker.Generate();
         var create = await PostAsync("/api/pedidos", pedido);
+
+        // Garante que o POST deu 201 Created ou 200 OK
         create.EnsureSuccessStatusCode();
 
         var responseCreate = await create.Content.ReadFromJsonAsync<PedidoDtoResponse>();
 
-        // Act 1: Primeiro cancelamento (Sucesso)
-        var patch1 = await PatchAsync($"/api/pedidos/{responseCreate!.Id}/cancelar");
-        patch1.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        responseCreate.Should().NotBeNull();
+        responseCreate!.Id.Should().NotBeEmpty();
 
+        // Act 1: Primeiro cancelamento (Sucesso)
+        var patch1 = await PatchAsync($"/api/pedidos/{responseCreate.Id}/cancelar");
+
+        // Assert 1
+        patch1.StatusCode.Should().Be(HttpStatusCode.NoContent);
         // Act 2: Tenta cancelar novamente
         var patch2 = await PatchAsync($"/api/pedidos/{responseCreate!.Id}/cancelar");
 

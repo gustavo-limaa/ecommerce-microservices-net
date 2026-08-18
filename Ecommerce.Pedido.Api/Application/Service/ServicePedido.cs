@@ -29,6 +29,8 @@ public class ServicePedido
 
         await _pedidoRepository.AdicionarAsync(pedido, cancellationToken);
 
+        await _pedidoRepository.SaveAsync(cancellationToken);
+
         var evento = new PedidoCriadoEvent(PedidoId: pedido.Id, ClienteId: pedido.ClienteId, ValorTotal: pedido.ValorTotal.Valor, DataCriacao: pedido.DataCriacao);
 
         await _eventProcessor.PublicarEventoAsync(evento, "pedido-criado-queue", cancellationToken);

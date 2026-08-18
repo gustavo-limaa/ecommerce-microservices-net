@@ -37,4 +37,14 @@ public class ProdutoRepository : IProdutoRepository
         _context.Produtos.Update(produto);
         await _context.SaveChangesAsync();
     }
+
+    public async Task<IEnumerable<Produto>> ObterPaginadoAsync(int pageNumber, int pageSize)
+    {
+        return await _context.Produtos
+            .AsNoTracking()
+            .Include(p => p.Categoria)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+    }
 }

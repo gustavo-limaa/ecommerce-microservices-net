@@ -32,6 +32,12 @@ public sealed class Produto
     {
         if (Estoque + quantidade < 0)
             throw new DomainException(ApplicationMessages.DadosInvalidos);
+        if (quantidade == 0)
+            throw new DomainException(ApplicationMessages.DadosInvalidos);
+        if (quantidade < 0 && Estoque + quantidade < 0)
+            throw new DomainException(ApplicationMessages.DadosInvalidos);
+        if (quantidade > -0)
+            throw new DomainException(ApplicationMessages.DadosInvalidos);
 
         Estoque += quantidade;
     }

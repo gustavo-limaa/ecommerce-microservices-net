@@ -22,10 +22,17 @@ public class CategoriasController : ControllerBase
         return Ok(categorias);
     }
 
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> ObterPorId(Guid id)
+    {
+        var categoria = await _catalogoService.ObterCategoriaPorIdAsync(id);
+        return Ok(categoria);
+    }
+
     [HttpPost]
     public async Task<IActionResult> Criar([FromBody] CriarCategoriaDTO dto)
     {
         var categoria = await _catalogoService.CriarCategoriaAsync(dto);
-        return CreatedAtAction(nameof(ObterTodas), new { id = categoria.Id }, categoria);
+        return CreatedAtAction(nameof(ObterPorId), new { id = categoria.Id }, categoria);
     }
 }

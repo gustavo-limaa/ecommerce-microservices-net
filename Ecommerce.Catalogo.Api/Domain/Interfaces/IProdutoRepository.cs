@@ -10,6 +10,8 @@ public interface IProdutoRepository
 
     Task<IEnumerable<Produto>> ObterPorCategoriaAsync(Guid categoriaId);
 
+    Task<IEnumerable<Produto>> ObterPaginadoAsync(int pageNumber, int pageSize);
+
     Task AdicionarAsync(Produto produto);
 
     Task AtualizarAsync(Produto produto);

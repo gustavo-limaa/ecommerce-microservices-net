@@ -4,12 +4,12 @@ using Xunit;
 
 namespace Ecommerce.Integration.Tests.Setup;
 
-public abstract class TestBase : IClassFixture<PedidoWebApplicationFactory>, IAsyncLifetime
+public abstract class PedidoTestBase : IClassFixture<PedidoWebApplicationFactory>, IAsyncLifetime
 {
     protected readonly PedidoWebApplicationFactory Factory;
     protected readonly HttpClient Client;
 
-    protected TestBase(PedidoWebApplicationFactory factory)
+    protected PedidoTestBase(PedidoWebApplicationFactory factory)
     {
         Factory = factory;
         Client = factory.CreateClient();

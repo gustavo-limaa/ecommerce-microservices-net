@@ -4,6 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <UserSecretsId>46e66690-d3dc-40f2-bcb7-776bec50e126</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -11,6 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Ecommerce.Catalogo.Api\Ecommerce.Catalogo.Api.csproj" />
     <ProjectReference Include="..\..\Ecommerce.Pagamento.Worker\Ecommerce.Pagamento.Worker.csproj" />
     <ProjectReference Include="..\..\Ecommerce.Pedido.Api\Ecommerce.Pedido.Api.csproj" />
   </ItemGroup>

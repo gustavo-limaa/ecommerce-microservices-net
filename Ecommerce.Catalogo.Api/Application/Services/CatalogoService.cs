@@ -77,4 +77,21 @@ public class CatalogoService : ICatalogoService
         produto.AtualizarEstoque(quantidade);
         await _produtoRepository.AtualizarAsync(produto);
     }
+
+    public async Task<CategoriaResponseDTO> ObterCategoriaPorIdAsync(Guid id)
+    {
+        var categoria = await _categoriaRepository.ObterPorIdAsync(id)
+            ?? throw new NotFoundException(ApplicationMessages.NaoEncontrado);
+
+        return new CategoriaResponseDTO(categoria.Id, categoria.Nome, categoria.Descricao, categoria.Ativo);
+    }
+
+    public async Task<IEnumerable<ProdutoResponseDTO>> ObterPaginacaoAsync(int pageNumber, int pageSize)
+    {
+        var produtos = await _produtoRepository.ObterPaginadoAsync(pageNumber, pageSize);
+
+        return produtos.Select(p => new ProdutoResponseDTO(
+            p.Id, p.Nome, p.Descricao, p.Preco, p.Estoque, p.Ativo, p.CategoriaId, p.Categoria?.Nome ?? string.Empty
+        ));
+    }
 }

@@ -10,8 +10,8 @@ using System.Text;
 
 namespace Ecommerce.Integration.Tests.Pedido.Integration;
 
-[Collection("Integration Tests")]
-public class PedidoGetTest : TestBase
+[Collection("PedidoTestCollection")]
+public class PedidoGetTest : PedidoTestBase
 {
     public PedidoGetTest(PedidoWebApplicationFactory factory) : base(factory)
     {

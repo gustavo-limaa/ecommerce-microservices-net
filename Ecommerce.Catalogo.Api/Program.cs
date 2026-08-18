@@ -22,11 +22,15 @@ builder.Services.AddProblemDetails();
 builder.Services.Configure<RabbitMqSettings>(builder.Configuration.GetSection("RabbitMqSettings"));
 builder.Services.AddScoped<IEventProcessor, RabbitMqEventProcessor>();
 
-// Database Context (EF Core + MySQL com versão fixa)
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+if (string.IsNullOrEmpty(connectionString))
+{
+    connectionString = "Server=localhost;Port=3308;Database=Ecommerce_Catalogo_DB;Uid=root;Pwd=158575Z;";
+}
+
 builder.Services.AddDbContext<CatalogoDbContext>(options =>
     options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 30))));
-
 // Injeção de Dependências de Negócio
 builder.Services.AddScoped<ICategoriaRepository, CategoriaRepository>();
 builder.Services.AddScoped<IProdutoRepository, ProdutoRepository>();
@@ -53,3 +57,7 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+internal partial class Program
+
+{ }

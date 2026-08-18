@@ -1,21 +1,20 @@
-﻿using Ecommerce.Pedido.Api.Infrastructure.Data;
-using Ecommerce.Pedido.Api.Mensageria.Services;
+﻿using Ecommerce.Catalogo.Api;
+using Ecommerce.Catalogo.Api.Infra.Data;
+using Ecommerce.Catalogo.Api.Mensageria.Services;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using MySqlConnector;
 using Respawn;
 using System.Data.Common;
-using Xunit;
 using RespawnTable = Respawn.Graph.Table;
 
 namespace Ecommerce.Integration.Tests.Setup;
 
-public class PedidoWebApplicationFactory : WebApplicationFactory<Program>, IAsyncLifetime
+public class CatalogoWebApplicationFactory : WebApplicationFactory<ICatalogoAssemblyMarker>, IAsyncLifetime
 {
     private DbConnection? _dbConnection;
     private Respawner? _respawner;
@@ -24,36 +23,21 @@ public class PedidoWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
     {
         builder.UseEnvironment("Testing");
 
-        // 1. Configuração de AppConfiguration (User Secrets & ConnectionStrings)
         builder.ConfigureAppConfiguration((context, config) =>
         {
-            config.AddUserSecrets<PedidoWebApplicationFactory>();
-
-            var settings = config.Build();
-            var connectionString = settings.GetConnectionString("PedidoTestConnection");
-
-            if (string.IsNullOrEmpty(connectionString))
-            {
-                throw new InvalidOperationException("A String de Conexão 'PedidoTestConnection' não foi configurada nos User Secrets!");
-            }
-
-            config.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                { "ConnectionStrings:DefaultConnection", connectionString }
-            });
+            // Carrega os User Secrets do projeto de testes
+            config.AddUserSecrets<CatalogoWebApplicationFactory>();
         });
 
-        // 2. Configuração de Services (Substituição do RabbitMQ por Mock)
-        builder.ConfigureServices(services =>
+        builder.ConfigureServices((context, services) =>
         {
-            // Remove o registro real do RabbitMQ
-            var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IEventProcessor));
-            if (descriptor != null)
+            // Substitui o RabbitMQ por Mock
+            var eventDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IEventProcessor));
+            if (eventDescriptor != null)
             {
-                services.Remove(descriptor);
+                services.Remove(eventDescriptor);
             }
 
-            // Cria o Mock que simula o envio do evento
             var eventProcessorMock = new Mock<IEventProcessor>();
             eventProcessorMock
                 .Setup(e => e.PublicarEventoAsync(
@@ -62,7 +46,6 @@ public class PedidoWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
                     It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
 
-            // Registra o Mock como Singleton no container de testes
             services.AddSingleton(eventProcessorMock.Object);
         });
     }
@@ -70,12 +53,18 @@ public class PedidoWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
     public async Task InitializeAsync()
     {
         using var scope = Services.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var context = scope.ServiceProvider.GetRequiredService<CatalogoDbContext>();
 
+        // Executa as migrations no banco de testes de forma limpa
         await context.Database.MigrateAsync();
 
         var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
-        var connectionString = configuration.GetConnectionString("PedidoTestConnection");
+        var connectionString = configuration.GetConnectionString("CatalogoTestConnection");
+        if (string.IsNullOrEmpty(connectionString))
+        {
+            throw new InvalidOperationException("A String de Conexão 'CatalogoTestConnection' não foi carregada no InitializeAsync().");
+        }
+
         _dbConnection = new MySqlConnection(connectionString);
         await _dbConnection.OpenAsync();
 
