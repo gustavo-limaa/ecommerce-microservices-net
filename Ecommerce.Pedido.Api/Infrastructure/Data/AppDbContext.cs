@@ -9,6 +9,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 {
     public DbSet<PedidoEntity> Pedidos => Set<PedidoEntity>();
     public DbSet<ItemPedido> ItensPedido => Set<ItemPedido>();
+    public DbSet<ProdutoSincronizado> ProdutosSincronizados => Set<ProdutoSincronizado>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

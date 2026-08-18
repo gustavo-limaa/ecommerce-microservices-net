@@ -30,11 +30,11 @@ public class PedidoWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
             config.AddUserSecrets<PedidoWebApplicationFactory>();
 
             var settings = config.Build();
-            var connectionString = settings.GetConnectionString("TestConnection");
+            var connectionString = settings.GetConnectionString("PedidoTestConnection");
 
             if (string.IsNullOrEmpty(connectionString))
             {
-                throw new InvalidOperationException("A String de Conexão 'TestConnection' não foi configurada nos User Secrets!");
+                throw new InvalidOperationException("A String de Conexão 'PedidoTestConnection' não foi configurada nos User Secrets!");
             }
 
             config.AddInMemoryCollection(new Dictionary<string, string?>
@@ -75,8 +75,7 @@ public class PedidoWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
         await context.Database.MigrateAsync();
 
         var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
-        var connectionString = configuration.GetConnectionString("DefaultConnection");
-
+        var connectionString = configuration.GetConnectionString("PedidoTestConnection");
         _dbConnection = new MySqlConnection(connectionString);
         await _dbConnection.OpenAsync();
 

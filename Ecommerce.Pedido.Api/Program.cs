@@ -1,5 +1,6 @@
 using Ecommerce.Pedido.Api;
 using Ecommerce.Pedido.Api.Domain.GlobalErros;
+using Ecommerce.Pedido.Api.Mensageria.Services;
 using FluentValidation;
 using Scalar.AspNetCore;
 
@@ -12,7 +13,7 @@ builder.Services
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
-
+builder.Services.AddHostedService<ProdutoCriadoConsumer>();
 var app = builder.Build();
 app.UseExceptionHandler();
 if (app.Environment.IsDevelopment())

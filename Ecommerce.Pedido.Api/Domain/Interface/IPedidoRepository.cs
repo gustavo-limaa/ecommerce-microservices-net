@@ -14,4 +14,6 @@ public interface IPedidoRepository
         CancellationToken cancellationToken = default);
 
     Task AtualizarAsync(PedidoEntity pedido, CancellationToken cancellationToken = default);
+
+    Task SaveAsync(CancellationToken cancellationToken = default);
 }

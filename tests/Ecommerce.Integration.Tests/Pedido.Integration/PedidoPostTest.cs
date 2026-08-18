@@ -11,8 +11,8 @@ using Xunit;
 
 namespace Ecommerce.Integration.Tests.Pedido.Integration;
 
-[Collection("Integration Tests")]
-public class PedidoPostTest : TestBase
+[Collection("PedidoTestCollection")]
+public class PedidoPostTest : PedidoTestBase
 {
     public PedidoPostTest(PedidoWebApplicationFactory factory) : base(factory)
     {

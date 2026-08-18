@@ -143,6 +143,30 @@ namespace Ecommerce.Pedido.Api.Migrations
                     b.ToTable("Pedidos", (string)null);
                 });
 
+            modelBuilder.Entity("Ecommerce.Pedido.Api.Domain.Entity.ProdutoSincronizado", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<bool>("Ativo")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("Estoque")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<decimal>("Preco")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ProdutosSincronizados");
+                });
+
             modelBuilder.Entity("Ecommerce.Pedido.Api.Domain.Entity.ItemPedido", b =>
                 {
                     b.HasOne("Ecommerce.Pedido.Api.Domain.Entity.Pedido", null)
