@@ -1,4 +1,7 @@
-﻿using System.Net.Http.Json;
+﻿using Ecommerce.Catalogo.Api.Mensageria.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Moq;
+using System.Net.Http.Json;
 
 namespace Ecommerce.Integration.Tests.Setup;
 
@@ -15,7 +18,13 @@ public abstract class CatalogoTestBase : IClassFixture<CatalogoWebApplicationFac
 
     public async Task InitializeAsync()
     {
+        // 1. Reseta o banco via Respawn
         await Factory.ResetDatabaseAsync();
+
+        // 2. Reseta o histórico de invocações do Mock para não poluir outros testes
+        using var scope = Factory.Services.CreateScope();
+        var mockProcessor = scope.ServiceProvider.GetService<Mock<IEventProcessor>>();
+        mockProcessor?.Invocations.Clear();
     }
 
     public Task DisposeAsync() => Task.CompletedTask;

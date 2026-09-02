@@ -30,15 +30,8 @@ public sealed class Produto
 
     public void AtualizarEstoque(int quantidade)
     {
-        if (Estoque + quantidade < 0)
+        if (quantidade <= 0 || (Estoque + quantidade < 0))
             throw new DomainException(ApplicationMessages.DadosInvalidos);
-        if (quantidade == 0)
-            throw new DomainException(ApplicationMessages.DadosInvalidos);
-        if (quantidade < 0 && Estoque + quantidade < 0)
-            throw new DomainException(ApplicationMessages.DadosInvalidos);
-        if (quantidade > -0)
-            throw new DomainException(ApplicationMessages.DadosInvalidos);
-
         Estoque += quantidade;
     }
 

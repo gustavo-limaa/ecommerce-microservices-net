@@ -1,5 +1,8 @@
-﻿using System.Net.Http.Json;
-using Ecommerce.Integration.Tests.Setup;
+﻿using Ecommerce.Integration.Tests.Setup;
+using Ecommerce.Pedido.Api.Mensageria.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Moq;
+using System.Net.Http.Json;
 using Xunit;
 
 namespace Ecommerce.Integration.Tests.Setup;
@@ -15,10 +18,13 @@ public abstract class PedidoTestBase : IClassFixture<PedidoWebApplicationFactory
         Client = factory.CreateClient();
     }
 
-    // Reset automático da base via Respawn antes de cada teste rodar
     public async Task InitializeAsync()
     {
         await Factory.ResetDatabaseAsync();
+
+        using var scope = Factory.Services.CreateScope();
+        var mockProcessor = scope.ServiceProvider.GetService<Mock<IEventProcessor>>();
+        mockProcessor?.Invocations.Clear();
     }
 
     public Task DisposeAsync() => Task.CompletedTask;

@@ -116,10 +116,11 @@ public static class DataFactory
             CategoriaId: categoriaId
         ));
 
-    public static Faker<CriarCategoriaDTO> CriarCategoriaDTOFaker => new Faker<CriarCategoriaDTO>("pt_BR")
+    public static Faker<CriarCategoriaDTO> CriarCategoriaDTOFaker =>
+    new Faker<CriarCategoriaDTO>("pt_BR")
         .CustomInstantiator(f => new CriarCategoriaDTO(
-            Nome: f.Commerce.Department(),
-            Descricao: f.Commerce.ProductDescription()
+            Nome: f.Commerce.Categories(1)[0],             // Garante nome válido de categoria
+            Descricao: f.Lorem.Sentence(5)                 // Garante frase válida
         ));
 
     public static Faker<ProdutoResponseDTO> ProdutoResponseDTOFaker => new Faker<ProdutoResponseDTO>("pt_BR")
