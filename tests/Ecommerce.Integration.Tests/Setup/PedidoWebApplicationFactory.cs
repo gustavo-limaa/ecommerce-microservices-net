@@ -43,27 +43,34 @@ public class PedidoWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
             });
         });
 
-        // 2. Configuração de Services (Substituição do RabbitMQ por Mock)
         builder.ConfigureServices(services =>
         {
-            // Remove o registro real do RabbitMQ
-            var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IEventProcessor));
-            if (descriptor != null)
+            // 1. Remove qualquer registro existente de IEventProcessor (Interface e Concreta)
+            var descriptors = services.Where(d =>
+                d.ServiceType == typeof(IEventProcessor) ||
+                d.ImplementationType?.GetInterfaces().Contains(typeof(IEventProcessor)) == true
+            ).ToList();
+
+            foreach (var descriptor in descriptors)
             {
                 services.Remove(descriptor);
             }
 
-            // Cria o Mock que simula o envio do evento
+            // 2. Cria o Mock limpo
             var eventProcessorMock = new Mock<IEventProcessor>();
-            eventProcessorMock
-                .Setup(e => e.PublicarEventoAsync(
-                    It.IsAny<It.IsAnyType>(),
-                    It.IsAny<string>(),
-                    It.IsAny<CancellationToken>()))
-                .Returns(Task.CompletedTask);
 
-            // Registra o Mock como Singleton no container de testes
-            services.AddSingleton(eventProcessorMock.Object);
+            // 3. Registra a instância do Mock e a Interface apontando para o .Object
+            services.AddSingleton(eventProcessorMock);
+            services.AddSingleton<IEventProcessor>(sp => sp.GetRequiredService<Mock<IEventProcessor>>().Object);
+
+            // 4. Remove o HostedService / Consumer para evitar background connection
+            var consumerDescriptor = services.FirstOrDefault(d =>
+                d.ImplementationType == typeof(Ecommerce.Pedido.Api.Mensageria.Services.ProdutoCriadoConsumer));
+
+            if (consumerDescriptor != null)
+            {
+                services.Remove(consumerDescriptor);
+            }
         });
     }
 

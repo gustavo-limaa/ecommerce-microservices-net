@@ -33,6 +33,7 @@ public class ProdutosController : ControllerBase
     public async Task<IActionResult> AtualizarEstoque(Guid id, [FromBody] AtualizarEstoqueDTO dto)
     {
         await _catalogoService.AtualizarEstoqueAsync(id, dto.Quantidade);
+
         return NoContent();
     }
 

@@ -66,14 +66,15 @@ public class ProdutoCriadoConsumer : BackgroundService
                     using var scope = _serviceProvider.CreateScope();
                     var repo = scope.ServiceProvider.GetRequiredService<IProdutoSincronizadoRepository>();
 
-                    await repo.SalvarOuAtualizarAsync(new ProdutoSincronizado
-                    {
-                        Id = evento.Id,
-                        Nome = evento.Nome,
-                        Preco = evento.Preco,
-                        Estoque = evento.Estoque,
-                        Ativo = true
-                    });
+                    var produto = new ProdutoSincronizado(
+                    evento.Id,
+                    evento.Nome,
+                    evento.Preco,
+                    evento.Estoque,
+                        ativo: true
+                    );
+
+                    await repo.SalvarOuAtualizarAsync(produto);
                 }
 
                 await channel.BasicAckAsync(deliveryTag: ea.DeliveryTag, multiple: false, cancellationToken: stoppingToken);

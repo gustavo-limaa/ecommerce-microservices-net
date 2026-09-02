@@ -75,6 +75,7 @@ public class CatalogoService : ICatalogoService
             ?? throw new NotFoundException(ApplicationMessages.NaoEncontrado);
 
         produto.AtualizarEstoque(quantidade);
+
         await _produtoRepository.AtualizarAsync(produto);
     }
 

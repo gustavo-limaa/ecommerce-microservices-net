@@ -25,10 +25,15 @@ public class ProdutoSincronizadoRepository : IProdutoSincronizadoRepository
         }
         else
         {
-            produtoExistente.Nome = produto.Nome;
-            produtoExistente.Preco = produto.Preco;
-            produtoExistente.Estoque = produto.Estoque;
-            produtoExistente.Ativo = produto.Ativo;
+            produtoExistente.AtualizarDados(
+
+                produto.Nome,
+                produto.Preco,
+                produto.Estoque,
+                produto.Ativo
+
+                );
+
             _context.ProdutosSincronizados.Update(produtoExistente);
         }
 

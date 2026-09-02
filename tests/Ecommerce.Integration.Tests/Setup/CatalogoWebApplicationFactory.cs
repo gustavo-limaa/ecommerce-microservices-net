@@ -45,8 +45,11 @@ public class CatalogoWebApplicationFactory : WebApplicationFactory<ICatalogoAsse
                     It.IsAny<string>(),
                     It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
+            // Registra o Mock em si para resgatar no teste do Catálogo
+            services.AddSingleton(eventProcessorMock);
 
-            services.AddSingleton(eventProcessorMock.Object);
+            // Registra a interface apontando para a instância do Mock
+            services.AddSingleton<IEventProcessor>(sp => sp.GetRequiredService<Mock<IEventProcessor>>().Object);
         });
     }
 
