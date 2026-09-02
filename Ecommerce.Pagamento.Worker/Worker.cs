@@ -1,37 +1,37 @@
-using System.Text;
-using System.Text.Json;
 using Ecommerce.Pagamento.Worker.Events;
+using Ecommerce.Pagamento.Worker.Service;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using System.Text;
+using System.Text.Json;
 
 namespace Ecommerce.Pagamento.Worker;
 
-public class Worker(ILogger<Worker> logger, IConfiguration configuration) : BackgroundService
+public class Worker(
+    ILogger<Worker> logger,
+    IConfiguration configuration,
+    IServiceProvider serviceProvider) : BackgroundService
 {
+    private const string QueueRecebimento = "pedido-criado-queue";
+    private const string QueueResposta = "pagamento-concluido-queue";
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        logger.LogInformation("🚀 Worker de Pagamentos iniciado. Aguardando mensagens...");
+        logger.LogInformation("🚀 Worker de Pagamentos aguardando mensagens...");
 
         var factory = new ConnectionFactory
         {
             HostName = configuration["RabbitMqSettings:Host"] ?? "localhost",
             Port = int.Parse(configuration["RabbitMqSettings:Port"] ?? "5672"),
-            UserName = configuration["RabbitMqSettings:Username"] ?? "guest",
-            Password = configuration["RabbitMqSettings:Password"] ?? "guest"
+            UserName = configuration["RabbitMqSettings:Username"],
+            Password = configuration["RabbitMqSettings:Password"]
         };
 
         using var connection = await factory.CreateConnectionAsync(stoppingToken);
         using var channel = await connection.CreateChannelAsync(cancellationToken: stoppingToken);
 
-        // Garante que a fila de recebimento existe
-        await channel.QueueDeclareAsync(
-            queue: "pedido-criado-queue",
-            durable: true,
-            exclusive: false,
-            autoDelete: false,
-            arguments: null,
-            cancellationToken: stoppingToken
-        );
+        await channel.QueueDeclareAsync(QueueRecebimento, durable: true, exclusive: false, autoDelete: false, cancellationToken: stoppingToken);
+        await channel.QueueDeclareAsync(QueueResposta, durable: true, exclusive: false, autoDelete: false, cancellationToken: stoppingToken);
 
         var consumer = new AsyncEventingBasicConsumer(channel);
 
@@ -45,33 +45,28 @@ public class Worker(ILogger<Worker> logger, IConfiguration configuration) : Back
 
                 if (pedidoEvento != null)
                 {
-                    logger.LogInformation("💳 Processando pagamento para o Pedido ID: {PedidoId} | Valor: R$ {ValorTotal}",
-                        pedidoEvento.PedidoId, pedidoEvento.ValorTotal);
+                    using var scope = serviceProvider.CreateScope();
+                    var pagamentoService = scope.ServiceProvider.GetRequiredService<IPagamentoService>();
 
-                    // Simula a validação/processamento da cobrança
-                    await Task.Delay(1000, stoppingToken);
+                    var resultadoPagamento = await pagamentoService.ProcessarPagamento(pedidoEvento);
 
-                    logger.LogInformation("✅ Pagamento APROVADO com sucesso para o Pedido ID: {PedidoId}", pedidoEvento.PedidoId);
+                    var respostaBody = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(resultadoPagamento));
+                    await channel.BasicPublishAsync("", QueueResposta, true, respostaBody, stoppingToken);
+
+                    logger.LogInformation("📢 Resposta de pagamento enviada para a fila: {Queue}", QueueResposta);
                 }
 
-                // Confirmação manual de leitura da mensagem (ACK)
-                await channel.BasicAckAsync(ea.DeliveryTag, multiple: false, cancellationToken: stoppingToken);
+                await channel.BasicAckAsync(ea.DeliveryTag, false, stoppingToken);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "❌ Erro ao processar mensagem de pagamento.");
-                await channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: true, cancellationToken: stoppingToken);
+                logger.LogError(ex, "❌ Erro no processamento. Rejeitando mensagem...");
+                await channel.BasicNackAsync(ea.DeliveryTag, false, false, stoppingToken);
             }
         };
 
-        await channel.BasicConsumeAsync(
-            queue: "pedido-criado-queue",
-            autoAck: false,
-            consumer: consumer,
-            cancellationToken: stoppingToken
-        );
+        await channel.BasicConsumeAsync(QueueRecebimento, autoAck: false, consumer: consumer, cancellationToken: stoppingToken);
 
-        // Mantém o Worker vivo escutando a fila até a aplicação ser encerrada
         while (!stoppingToken.IsCancellationRequested)
         {
             await Task.Delay(1000, stoppingToken);
