@@ -58,17 +58,13 @@ public sealed class Pedido
 
     public void AlterarStatus(StatusPedido novoStatus)
     {
-        // Validação de transição de status usando Switch Expression
         Status = (Status, novoStatus) switch
         {
-            // Regra: Do 'Processando', só pode ir para 'Aprovado' ou 'Reprovado'
             (StatusPedido.Processando, StatusPedido.Aprovado) => StatusPedido.Aprovado,
             (StatusPedido.Processando, StatusPedido.Reprovado) => StatusPedido.Reprovado,
 
-            // Regra: Do 'Aprovado', só pode ir para 'ACaminho'
             (StatusPedido.Aprovado, StatusPedido.ACaminho) => StatusPedido.ACaminho,
 
-            // Qualquer outra combinação não permitida dispara exceção de domínio!
             _ => throw new DomainException(DomainMessages.PedidoMSG.AlteracaoNaoPermitida)
         };
     }
