@@ -1,0 +1,91 @@
+name: .NET CI
+
+on:
+  push:
+    branches: [ "main", "feature/*", "Test/*" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  # -------------------------------------------------------------
+  # JOB 1: Compilação do Ecossistema
+  # -------------------------------------------------------------
+  build:
+    name: Build Solution
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do Código
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restaurar Dependências
+        run: dotnet restore
+
+      - name: Compilar Projeto
+        run: dotnet build --no-restore --configuration Release
+
+      # Salva os binários compilados para o próximo Job reutilizar
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: .
+
+  # -------------------------------------------------------------
+  # JOB 2: Suíte de Testes (Unitários + Integração com RabbitMQ)
+  # -------------------------------------------------------------
+  test:
+    name: Run Tests
+    needs: build
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: EcommerceDb
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+      rabbitmq:
+        image: rabbitmq:3-management
+        ports:
+          - 5672:5672
+          - 15672:15672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+
+      - name: Executar Testes
+        run: dotnet test --no-build --configuration Release --verbosity normal
+        env:
+          # O GitHub Actions substitui automaticamente a secret em tempo de execução
+          ConnectionStrings__DefaultConnection: "Server=localhost;Port=3306;Database=EcommerceDb;Uid=root;Pwd=${{ secrets.MYSQL_ROOT_PASSWORD }};"
+          RabbitMqSettings__Host: localhost
+          RabbitMqSettings__Port: 5672
+          RabbitMqSettings__Username: guest
+          RabbitMqSettings__Password: guest
