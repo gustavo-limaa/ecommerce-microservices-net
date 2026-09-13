@@ -83,7 +83,7 @@ jobs:
       - name: Executar Testes
         run: dotnet test --no-build --configuration Release --verbosity normal
         env:
-          # O GitHub Actions substitui automaticamente a secret em tempo de execução
+          JwtSettings__Secret: ${{ secrets.JWT_SECRET }}
           ConnectionStrings__DefaultConnection: "Server=localhost;Port=3306;Database=EcommerceDb;Uid=root;Pwd=${{ secrets.MYSQL_ROOT_PASSWORD }};"
           RabbitMqSettings__Host: localhost
           RabbitMqSettings__Port: 5672
