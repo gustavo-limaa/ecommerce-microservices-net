@@ -12,7 +12,7 @@ services:
     networks:
       - ecommerce-network
 
-
+  
   rabbitmq:
     image: rabbitmq:3-management
     container_name: ecommerce-rabbitmq
@@ -20,10 +20,15 @@ services:
       - "5672:5672"
       - "15672:15672"
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
-      - ecommerce-network
+     - ecommerce-network
 
   pedido.api:
     build:
@@ -44,20 +49,23 @@ services:
     networks:
       - ecommerce-network
 
-  pagamento.worker:
+  pagamento-worker:
     build:
       context: .
       dockerfile: Ecommerce.Pagamento.Worker/Dockerfile
     container_name: ecommerce-pagamento-worker
     environment:
+      - ASPNETCORE_ENVIRONMENT=Development
       - RabbitMqSettings__Host=rabbitmq
       - RabbitMqSettings__Port=5672
       - RabbitMqSettings__Username=${RABBITMQ_USER}
       - RabbitMqSettings__Password=${RABBITMQ_PASS}
     depends_on:
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
     networks:
       - ecommerce-network
+            
   catalogo.api:
     build:
       context: .
@@ -73,6 +81,19 @@ services:
     networks:
       - ecommerce-network
       
+  gateway:
+    build:
+      context: .
+      dockerfile: Ecommerce.Gateway/Dockerfile
+    container_name: ecommerce-gateway
+    ports:
+      - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - JwtSettings__Secret=${JWT_SECRET}
+    networks:
+      - ecommerce-network
+
 networks:
   ecommerce-network:
     driver: bridge

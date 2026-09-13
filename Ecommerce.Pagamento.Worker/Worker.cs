@@ -17,7 +17,7 @@ public class Worker(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        logger.LogInformation("🚀 Worker de Pagamentos aguardando mensagens...");
+        logger.LogInformation("🚀 Iniciando Worker de Pagamentos...");
 
         var factory = new ConnectionFactory
         {
@@ -27,49 +27,69 @@ public class Worker(
             Password = configuration["RabbitMqSettings:Password"]
         };
 
-        using var connection = await factory.CreateConnectionAsync(stoppingToken);
-        using var channel = await connection.CreateChannelAsync(cancellationToken: stoppingToken);
+        IConnection? connection = null;
 
-        await channel.QueueDeclareAsync(QueueRecebimento, durable: true, exclusive: false, autoDelete: false, cancellationToken: stoppingToken);
-        await channel.QueueDeclareAsync(QueueResposta, durable: true, exclusive: false, autoDelete: false, cancellationToken: stoppingToken);
-
-        var consumer = new AsyncEventingBasicConsumer(channel);
-
-        consumer.ReceivedAsync += async (model, ea) =>
+        while (!stoppingToken.IsCancellationRequested && connection == null)
         {
             try
             {
-                var body = ea.Body.ToArray();
-                var message = Encoding.UTF8.GetString(body);
-                var pedidoEvento = JsonSerializer.Deserialize<PedidoCriadoEvent>(message);
-
-                if (pedidoEvento != null)
-                {
-                    using var scope = serviceProvider.CreateScope();
-                    var pagamentoService = scope.ServiceProvider.GetRequiredService<IPagamentoService>();
-
-                    var resultadoPagamento = await pagamentoService.ProcessarPagamento(pedidoEvento);
-
-                    var respostaBody = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(resultadoPagamento));
-                    await channel.BasicPublishAsync("", QueueResposta, true, respostaBody, stoppingToken);
-
-                    logger.LogInformation("📢 Resposta de pagamento enviada para a fila: {Queue}", QueueResposta);
-                }
-
-                await channel.BasicAckAsync(ea.DeliveryTag, false, stoppingToken);
+                logger.LogInformation("🔌 Tentando conectar ao RabbitMQ...");
+                connection = await factory.CreateConnectionAsync(stoppingToken);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "❌ Erro no processamento. Rejeitando mensagem...");
-                await channel.BasicNackAsync(ea.DeliveryTag, false, false, stoppingToken);
+                logger.LogWarning("⏳ RabbitMQ ainda não está pronto ({Message}). Tentando novamente em 5s...", ex.Message);
+                await Task.Delay(5000, stoppingToken);
             }
-        };
+        }
 
-        await channel.BasicConsumeAsync(QueueRecebimento, autoAck: false, consumer: consumer, cancellationToken: stoppingToken);
+        if (stoppingToken.IsCancellationRequested || connection == null) return;
 
-        while (!stoppingToken.IsCancellationRequested)
+        using (connection)
+        using (var channel = await connection.CreateChannelAsync(cancellationToken: stoppingToken))
         {
-            await Task.Delay(1000, stoppingToken);
+            await channel.QueueDeclareAsync(QueueRecebimento, durable: true, exclusive: false, autoDelete: false, cancellationToken: stoppingToken);
+            await channel.QueueDeclareAsync(QueueResposta, durable: true, exclusive: false, autoDelete: false, cancellationToken: stoppingToken);
+
+            var consumer = new AsyncEventingBasicConsumer(channel);
+
+            consumer.ReceivedAsync += async (model, ea) =>
+            {
+                try
+                {
+                    var body = ea.Body.ToArray();
+                    var message = Encoding.UTF8.GetString(body);
+                    var pedidoEvento = JsonSerializer.Deserialize<PedidoCriadoEvent>(message);
+
+                    if (pedidoEvento != null)
+                    {
+                        using var scope = serviceProvider.CreateScope();
+                        var pagamentoService = scope.ServiceProvider.GetRequiredService<IPagamentoService>();
+
+                        var resultadoPagamento = await pagamentoService.ProcessarPagamento(pedidoEvento);
+
+                        var respostaBody = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(resultadoPagamento));
+                        await channel.BasicPublishAsync("", QueueResposta, true, respostaBody, stoppingToken);
+
+                        logger.LogInformation("📢 Resposta de pagamento enviada para a fila: {Queue}", QueueResposta);
+                    }
+
+                    await channel.BasicAckAsync(ea.DeliveryTag, false, stoppingToken);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "❌ Erro no processamento. Rejeitando mensagem...");
+                    await channel.BasicNackAsync(ea.DeliveryTag, false, false, stoppingToken);
+                }
+            };
+
+            await channel.BasicConsumeAsync(QueueRecebimento, autoAck: false, consumer: consumer, cancellationToken: stoppingToken);
+            logger.LogInformation("✅ Conectado! Worker aguardando mensagens em '{Queue}'", QueueRecebimento);
+
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                await Task.Delay(1000, stoppingToken);
+            }
         }
     }
 }
