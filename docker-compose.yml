@@ -9,10 +9,14 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASS}
       MYSQL_DATABASE: ${MYSQL_DB_NAME}
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASS}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - ecommerce-network
 
-  
   rabbitmq:
     image: rabbitmq:3-management
     container_name: ecommerce-rabbitmq
@@ -28,7 +32,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-     - ecommerce-network
+      - ecommerce-network
 
   pedido.api:
     build:
@@ -91,6 +95,23 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - JwtSettings__Secret=${JWT_SECRET}
+    networks:
+      - ecommerce-network
+
+  ecommerce.auth.api:
+    build:
+      context: .
+      dockerfile: Ecommerce.Auth.Api/Dockerfile
+    container_name: ecommerce-auth-api
+    ports:
+      - "5005:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=${AUTH_DB_NAME:-Ecommerce_AuthDb};Uid=root;Pwd=${MYSQL_ROOT_PASS};
+      - JwtSettings__Secret=${JWT_SECRET}
+    depends_on:
+      mysql:
+        condition: service_healthy
     networks:
       - ecommerce-network
 
