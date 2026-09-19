@@ -22,13 +22,8 @@ builder.Services.AddProblemDetails();
 builder.Services.Configure<RabbitMqSettings>(builder.Configuration.GetSection("RabbitMqSettings"));
 builder.Services.AddScoped<IEventProcessor, RabbitMqEventProcessor>();
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
-if (string.IsNullOrEmpty(connectionString))
-{
-    connectionString = "Server=localhost;Port=3308;Database=Ecommerce_Catalogo_DB;Uid=root;Pwd=158575Z;";
-}
-
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("A ConnectionString 'DefaultConnection' não foi configurada.");
 builder.Services.AddDbContext<CatalogoDbContext>(options =>
     options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 30))));
 // Injeção de Dependências de Negócio
@@ -37,7 +32,11 @@ builder.Services.AddScoped<IProdutoRepository, ProdutoRepository>();
 builder.Services.AddScoped<ICatalogoService, CatalogoService>();
 
 var app = builder.Build();
-
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<CatalogoDbContext>(); // Substitua pelo nome do seu DbContext do Catálogo
+    context.Database.Migrate();
+}
 // Middlewares
 app.UseExceptionHandler();
 
