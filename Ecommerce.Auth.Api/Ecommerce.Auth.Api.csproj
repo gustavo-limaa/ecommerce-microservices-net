@@ -4,11 +4,8 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>6d2a1fe8-e162-4208-b80b-6638f2a4d5e5</UserSecretsId>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Folder Include="Data\" />
-  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Ecommerce.Pedido.Api\Ecommerce.Pedido.Api.csproj" />
@@ -16,7 +13,16 @@
 
   <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.22.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Data\Configuretion\" />
+    <Folder Include="Migrations\" />
   </ItemGroup>
 
 </Project>

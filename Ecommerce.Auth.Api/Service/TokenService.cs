@@ -21,7 +21,7 @@ public class TokenService(IConfiguration configuration) : ITokenService
         {
             Subject = new ClaimsIdentity([
                 new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
-                new Claim(ClaimTypes.Name, usuario.Nome),\
+                new Claim(ClaimTypes.Name, usuario.Nome),
                 new Claim(ClaimTypes.Email, usuario.Email.Valor),
                 new Claim(ClaimTypes.Role, usuario.Perfil.ToString())
             ]),

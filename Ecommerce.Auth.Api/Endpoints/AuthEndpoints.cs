@@ -1,10 +1,11 @@
-﻿using Ecommerce.Auth.Api.Dtos;
+﻿using Ecommerce.Auth.Api.Data;
+using Ecommerce.Auth.Api.Dtos;
 using Ecommerce.Auth.Api.Entities;
 using Ecommerce.Auth.Api.Entities.Enums;
 using Ecommerce.Auth.Api.Entities.ValueObjects;
 using Ecommerce.Auth.Api.Service;
-using Ecommerce.Auth.Api.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Ecommerce.Auth.Api.Endpoints;
 
@@ -20,7 +21,9 @@ public static class AuthEndpoints
         return app;
     }
 
-    private static async Task<IResult> Registrar([FromBody] RegistroUsuarioDto dto)
+    private static async Task<IResult> Registrar(
+    [FromBody] RegistroUsuarioDto dto,
+    [FromServices] UsuarioDbContext context)
     {
         var (email, erroEmail) = Email.Criar(dto.Email);
         if (email is null)
@@ -29,8 +32,16 @@ public static class AuthEndpoints
         if (!Enum.TryParse<PerfilUsuario>(dto.Perfil, true, out var perfilEnum))
             return Results.BadRequest(new { mensagem = "Perfil inválido. Use 'Cliente' ou 'Admin'." });
 
+        // Verifica se já existe um usuário cadastrado com o mesmo e-mail
+        var emailExiste = await context.Usuarios.AnyAsync(u => u.Email.Valor == email.Valor);
+        if (emailExiste)
+            return Results.Conflict(new { mensagem = "Este e-mail já está em uso." });
+
         string senhaHash = BCrypt.Net.BCrypt.HashPassword(dto.Senha);
         var usuario = new Usuario(dto.Nome, email, senhaHash, perfilEnum);
+
+        context.Usuarios.Add(usuario);
+        await context.SaveChangesAsync();
 
         return Results.Created($"/api/usuarios/{usuario.Id}", new
         {
@@ -41,26 +52,24 @@ public static class AuthEndpoints
         });
     }
 
+    // Exemplo no Login:
     private static async Task<IResult> Login(
         [FromBody] LoginDto dto,
+        [FromServices] UsuarioDbContext context,
         [FromServices] ITokenService tokenService)
     {
         var (email, erroEmail) = Email.Criar(dto.Email);
         if (email is null)
             return Results.Unauthorized();
 
-        // Mock temporário para validação rápida
-        if (email.Valor != "teste@email.com")
+        var usuario = await context.Usuarios
+            .FirstOrDefaultAsync(u => u.Email.Valor == email.Valor);
+
+        if (usuario is null || !BCrypt.Net.BCrypt.Verify(dto.Senha, usuario.SenhaHash))
             return Results.Unauthorized();
 
-        string hashMock = BCrypt.Net.BCrypt.HashPassword("123456");
-        var usuarioMock = new Usuario("Desenvolvedor", email, hashMock, PerfilUsuario.Admin);
+        string token = tokenService.GerarToken(usuario);
 
-        if (!BCrypt.Net.BCrypt.Verify(dto.Senha, usuarioMock.SenhaHash))
-            return Results.Unauthorized();
-
-        string token = tokenService.GerarToken(usuarioMock);
-
-        return Results.Ok(new TokenResponseDto(token, 7200, usuarioMock.Email.Valor));
+        return Results.Ok(new TokenResponseDto(token, 7200, usuario.Email.Valor));
     }
 }
