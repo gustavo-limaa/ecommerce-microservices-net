@@ -12,6 +12,7 @@ namespace Ecommerce.UnitarioTests.Pedido.Unitario;
 public class ServicePedidoTests
 {
     private readonly Mock<IPedidoRepository> _repositoryMock;
+    private readonly Mock<IProdutoSincronizadoRepository> _produtoSincronizadoRepositoryMock;
     private readonly ServicePedido _service;
     private readonly Mock<IEventProcessor> _eventProcessorMock;
 
@@ -19,10 +20,11 @@ public class ServicePedidoTests
     {
         // 1. Mockamos o repositório
         _repositoryMock = new Mock<IPedidoRepository>();
+
         _eventProcessorMock = new Mock<IEventProcessor>();
 
         // 2. Injetamos o mock no Service
-        _service = new ServicePedido(_repositoryMock.Object, _eventProcessorMock.Object);
+        _service = new ServicePedido(_repositoryMock.Object, _produtoSincronizadoRepositoryMock.Object, _eventProcessorMock.Object);
     }
 
     [Fact]

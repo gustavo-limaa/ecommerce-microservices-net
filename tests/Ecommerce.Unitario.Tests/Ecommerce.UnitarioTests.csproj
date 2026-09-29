@@ -1,28 +1,33 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<IsPackable>false</IsPackable>
+		<UserSecretsId>492d0bf9-123c-427c-97d9-86e44988b398</UserSecretsId>
+	</PropertyGroup>
 
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <IsPackable>false</IsPackable>
-    <UserSecretsId>492d0bf9-123c-427c-97d9-86e44988b398</UserSecretsId>
-  </PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="coverlet.collector" Version="6.0.4" />
+		<PackageReference Include="FluentAssertions" Version="8.0.1" />
+		<PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.0" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+		<PackageReference Include="Moq" Version="4.20.72" />
+		<PackageReference Include="WireMock.Net" Version="2.17.0" />
+		<PackageReference Include="xunit" Version="2.9.2" />
+		<PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="6.0.4" />
-    <PackageReference Include="FluentAssertions" Version="8.10.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
-    <PackageReference Include="Moq" Version="4.20.72" />
-    <PackageReference Include="xunit" Version="2.9.3" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
-  </ItemGroup>
+	<ItemGroup>
+		<Using Include="Xunit" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <Using Include="Xunit" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\EcommerceDataTest\EcommerceDataTest.csproj" />
-  </ItemGroup>
-
+	<ItemGroup>
+		<ProjectReference Include="..\..\Ecommerce.Auth.Api\Ecommerce.Auth.Api.csproj" />
+		<ProjectReference Include="..\..\Ecommerce.Catalogo.Api\Ecommerce.Catalogo.Api.csproj" />
+		<ProjectReference Include="..\..\Ecommerce.Gateway\Ecommerce.Gateway.csproj" />
+		<ProjectReference Include="..\..\Ecommerce.Pagamento.Worker\Ecommerce.Pagamento.Worker.csproj" />
+		<ProjectReference Include="..\..\Ecommerce.Pedido.Api\Ecommerce.Pedido.Api.csproj" />
+		<ProjectReference Include="..\EcommerceDataTest\EcommerceDataTest.csproj" />
+	</ItemGroup>
 </Project>

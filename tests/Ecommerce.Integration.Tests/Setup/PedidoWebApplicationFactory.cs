@@ -1,76 +1,84 @@
-﻿using Ecommerce.Pedido.Api.Infrastructure.Data;
+﻿using Ecommerce.Pedido.Api;
+using Ecommerce.Pedido.Api.Domain.Interface;
+using Ecommerce.Pedido.Api.Infrastructure.Data;
+using Ecommerce.Pedido.Api.Infrastructure.Repositories;
 using Ecommerce.Pedido.Api.Mensageria.Services;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using MySqlConnector;
 using Respawn;
 using System.Data.Common;
-using Xunit;
 using RespawnTable = Respawn.Graph.Table;
 
 namespace Ecommerce.Integration.Tests.Setup;
 
-public class PedidoWebApplicationFactory : WebApplicationFactory<Program>, IAsyncLifetime
+public class PedidoWebApplicationFactory : WebApplicationFactory<IPedidoAssemblyMarker>, IAsyncLifetime
 {
     private DbConnection? _dbConnection;
     private Respawner? _respawner;
+
+    private const string TestConnectionString = "Server=127.0.0.1;Port=3308;Database=ecommerce_pedido_testes_db;Uid=test_user;Pwd=test_password_123;";
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
 
-        // 1. Configuração de AppConfiguration (User Secrets & ConnectionStrings)
-        builder.ConfigureAppConfiguration((context, config) =>
-        {
-            config.AddUserSecrets<PedidoWebApplicationFactory>();
-
-            var settings = config.Build();
-            var connectionString = settings.GetConnectionString("PedidoTestConnection");
-
-            if (string.IsNullOrEmpty(connectionString))
-            {
-                throw new InvalidOperationException("A String de Conexão 'PedidoTestConnection' não foi configurada nos User Secrets!");
-            }
-
-            config.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                { "ConnectionStrings:DefaultConnection", connectionString }
-            });
-        });
+        // 1. Injeta a string de conexão no builder antes de o Program.cs rodar
+        builder.UseSetting("ConnectionStrings:DefaultConnection", TestConnectionString);
 
         builder.ConfigureServices(services =>
         {
-            // 1. Remove qualquer registro existente de IEventProcessor (Interface e Concreta)
-            var descriptors = services.Where(d =>
-                d.ServiceType == typeof(IEventProcessor) ||
-                d.ImplementationType?.GetInterfaces().Contains(typeof(IEventProcessor)) == true
-            ).ToList();
+            // 2. Configura a Autenticação de Teste
+            services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = "TestScheme";
+                options.DefaultChallengeScheme = "TestScheme";
+            })
+            .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>("TestScheme", options => { })
+            .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>("Bearer", options => { });
 
+            // 3. Garante o registo do Controller de Pedidos
+            services.AddControllers()
+        .AddApplicationPart(typeof(Ecommerce.Pedido.Api.Controllers.PedidosController).Assembly)
+        .AddControllersAsServices();
+            // 4. Substitui o DbContext pelo banco de testes
+            var dbContextDescriptor = services.SingleOrDefault(
+                d => d.ServiceType == typeof(DbContextOptions<AppDbContext>));
+
+            if (dbContextDescriptor != null)
+            {
+                services.Remove(dbContextDescriptor);
+            }
+
+            services.AddDbContext<AppDbContext>(options =>
+                options.UseMySql(TestConnectionString, new MySqlServerVersion(new Version(8, 0, 30))));
+
+            // 5. 🎯 CORRECÇÃO DO RABBITMQ: Remove o IEventProcessor do PEDIDO (não do Catálogo)
+            var eventProcessorDescriptor = services.SingleOrDefault(
+                d => d.ServiceType == typeof(Ecommerce.Pedido.Api.Mensageria.Services.IEventProcessor));
+
+            if (eventProcessorDescriptor != null)
+            {
+                services.Remove(eventProcessorDescriptor);
+            }
+
+            var eventProcessorMock = new Mock<Ecommerce.Pedido.Api.Mensageria.Services.IEventProcessor>();
+            services.AddSingleton(eventProcessorMock.Object);
+            services.AddSingleton(eventProcessorMock);
+
+            // Remove TODOS os registros anteriores do DbContext
+            var descriptors = services.Where(d => d.ServiceType == typeof(DbContextOptions<AppDbContext>)).ToList();
             foreach (var descriptor in descriptors)
             {
                 services.Remove(descriptor);
             }
 
-            // 2. Cria o Mock limpo
-            var eventProcessorMock = new Mock<IEventProcessor>();
-
-            // 3. Registra a instância do Mock e a Interface apontando para o .Object
-            services.AddSingleton(eventProcessorMock);
-            services.AddSingleton<IEventProcessor>(sp => sp.GetRequiredService<Mock<IEventProcessor>>().Object);
-
-            // 4. Remove o HostedService / Consumer para evitar background connection
-            var consumerDescriptor = services.FirstOrDefault(d =>
-                d.ImplementationType == typeof(Ecommerce.Pedido.Api.Mensageria.Services.ProdutoCriadoConsumer));
-
-            if (consumerDescriptor != null)
-            {
-                services.Remove(consumerDescriptor);
-            }
+            services.AddDbContext<AppDbContext>(options =>
+                options.UseMySql(TestConnectionString, new MySqlServerVersion(new Version(8, 0, 30))));
         });
     }
 
@@ -79,11 +87,11 @@ public class PedidoWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
         using var scope = Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
+        // Executa as migrations na base de testes do Catálogo
         await context.Database.MigrateAsync();
 
-        var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
-        var connectionString = configuration.GetConnectionString("PedidoTestConnection");
-        _dbConnection = new MySqlConnection(connectionString);
+        // Inicializa o Respawner
+        _dbConnection = new MySqlConnection(TestConnectionString);
         await _dbConnection.OpenAsync();
 
         _respawner = await Respawner.CreateAsync(_dbConnection, new RespawnerOptions

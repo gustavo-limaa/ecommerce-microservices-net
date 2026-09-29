@@ -21,3 +21,6 @@ app.UseAuthorization();
 app.MapReverseProxy();
 
 app.Run();
+
+internal partial class Program
+{ }

@@ -90,7 +90,8 @@ public static class DataFactory
             Bairro: f.Address.County(),
             Cidade: f.Address.City(),
             Estado: f.Address.StateAbbr(),
-            Cep: f.Address.ZipCode("#####-###")
+
+             Cep: f.Address.ZipCode("########")
         ));
 
     public static Faker<ItemPedidoDtoCreate> ItemPedidoDtoCreateFaker => new Faker<ItemPedidoDtoCreate>("pt_BR")
@@ -142,6 +143,24 @@ public static class DataFactory
             Descricao: f.Commerce.ProductDescription(),
             Ativo: f.Random.Bool()
         ));
+
+    public static PedidoDtoCreate GerarPedidoDtoValidoComProdutos(List<Guid> produtosIds)
+    {
+        var pedidoDto = PedidoDtoCreateFaker.Generate();
+        pedidoDto.Itens.Clear();
+
+        foreach (var produtoId in produtosIds)
+        {
+            pedidoDto.Itens.Add(new ItemPedidoDtoCreate(
+                ProdutoId: produtoId,
+                NomeProduto: new Faker("pt_BR").Commerce.ProductName(),
+                PrecoUnitario: new Faker().Random.Decimal(10, 500),
+                Quantidade: new Faker().Random.Number(1, 5)
+            ));
+        }
+
+        return pedidoDto;
+    }
 
     #endregion DTOs de Request
 }

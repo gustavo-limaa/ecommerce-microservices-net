@@ -5,7 +5,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 
-namespace Ecommerce.Pagamento.Worker.Tests.Services;
+namespace Ecommerce.Integration.Tests.Pagamento.Integration;
 
 public class PagamentoServiceTests
 {
