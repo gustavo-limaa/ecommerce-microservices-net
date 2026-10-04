@@ -29,12 +29,13 @@ public class UsuarioConfig : IEntityTypeConfiguration<Usuario>
                 .IsUnique();
         });
         builder.Property(u => u.SenhaHash)
+
             .IsRequired()
             .HasMaxLength(255);
 
         builder.Property(u => u.Perfil)
            .HasConversion<string>()
-            .HasDefaultValue(PerfilUsuario.Client)
+            .HasDefaultValue(PerfilUsuario.Cliente)
             .HasMaxLength(20)
             .IsRequired();
         builder.Property(u => u.CriadoEm)

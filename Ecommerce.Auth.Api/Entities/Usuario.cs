@@ -11,13 +11,13 @@ public sealed class Usuario
 
     public string SenhaHash { get; private set; }
 
-    public PerfilUsuario Perfil { get; private set; } = PerfilUsuario.Client;
+    public PerfilUsuario Perfil { get; private set; } = PerfilUsuario.Cliente;
     public DateTime CriadoEm { get; private set; } = DateTime.UtcNow;
 
     private Usuario()
     { } // EF Core
 
-    public Usuario(string nome, Email email, string senhaHash, PerfilUsuario perfil = PerfilUsuario.Client)
+    public Usuario(string nome, Email email, string senhaHash, PerfilUsuario perfil = PerfilUsuario.Cliente)
     {
         Id = Guid.NewGuid();
         Nome = nome;

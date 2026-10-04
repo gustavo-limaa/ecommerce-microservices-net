@@ -70,6 +70,7 @@ public class PedidoWebApplicationFactory : WebApplicationFactory<IPedidoAssembly
             services.AddSingleton(eventProcessorMock.Object);
             services.AddSingleton(eventProcessorMock);
 
+            services.AddScoped<IProdutoSincronizadoRepository, ProdutoSincronizadoRepository>();
             // Remove TODOS os registros anteriores do DbContext
             var descriptors = services.Where(d => d.ServiceType == typeof(DbContextOptions<AppDbContext>)).ToList();
             foreach (var descriptor in descriptors)

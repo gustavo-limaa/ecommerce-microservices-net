@@ -3,7 +3,7 @@
     public enum PerfilUsuario
     {
         Admin = 1,
-        Client = 2,
+        Cliente = 2,
         Vendor = 3
     }
 }

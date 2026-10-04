@@ -1,5 +1,6 @@
 ﻿using Ecommerce.Pedido.Api.Application.Mappers.ForEntities;
 using Ecommerce.Pedido.Api.Application.Service;
+using Ecommerce.Pedido.Api.Domain.Entity;
 using Ecommerce.Pedido.Api.Domain.GlobalErros.Exceptions;
 using Ecommerce.Pedido.Api.Domain.Interface;
 using Ecommerce.Pedido.Api.Mensageria.Services;
@@ -18,13 +19,16 @@ public class ServicePedidoTests
 
     public ServicePedidoTests()
     {
-        // 1. Mockamos o repositório
+        // 1. Mockamos o repositório/ 1. Instancia TODOS os mocks obrigatoriamente
         _repositoryMock = new Mock<IPedidoRepository>();
-
+        _produtoSincronizadoRepositoryMock = new Mock<IProdutoSincronizadoRepository>();
         _eventProcessorMock = new Mock<IEventProcessor>();
 
-        // 2. Injetamos o mock no Service
-        _service = new ServicePedido(_repositoryMock.Object, _produtoSincronizadoRepositoryMock.Object, _eventProcessorMock.Object);
+        // 2. Injeta os objetos mockados no Service
+        _service = new ServicePedido(
+            _repositoryMock.Object,
+            _produtoSincronizadoRepositoryMock.Object,
+            _eventProcessorMock.Object);
     }
 
     [Fact]
@@ -83,7 +87,12 @@ public class ServicePedidoTests
         // Arrange
         var dto = DataFactory.PedidoDtoCreateFaker.Generate();
 
-        // 🎯 Configuração correta para métodos do repositório que retornam Task (void assíncrono)
+        // 🎯 1. MOCK DO PRODUTO SINCRONIZADO: Retorna um produto válido para evitar a BadRequestException
+        _produtoSincronizadoRepositoryMock
+            .Setup(r => r.ObterPorIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProdutoSincronizado(Guid.NewGuid(), "Produto Teste", 100m, 10, true));
+
+        // 2. MOCK DO REPOSITÓRIO DE PEDIDO
         _repositoryMock
             .Setup(r => r.AdicionarAsync(It.IsAny<PedidoE>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -95,7 +104,6 @@ public class ServicePedidoTests
         Assert.NotNull(result);
         Assert.Equal(dto.ClienteId, result.ClienteId);
 
-        // Garante que o método do repositório foi chamado exatamente 1 vez
         _repositoryMock.Verify(
             r => r.AdicionarAsync(It.IsAny<PedidoE>(), It.IsAny<CancellationToken>()),
             Times.Once
@@ -107,7 +115,11 @@ public class ServicePedidoTests
     {
         // Arrange
         var pedidoDtoCreate = DataFactory.PedidoDtoCreateFaker.Generate() with { ClienteId = Guid.Empty };
-        // Deixamos o pedido inválido para simular o cenário
+
+        // 🎯 MOCK DO PRODUTO: Garante que ele passa da validação de sincronização
+        _produtoSincronizadoRepositoryMock
+            .Setup(r => r.ObterPorIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProdutoSincronizado(Guid.NewGuid(), "Produto Teste", 100m, 10, true));
 
         // Act & Assert
         await Assert.ThrowsAsync<DomainException>(() =>

@@ -11,6 +11,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\..\Ecommerce.Auth.Api\Ecommerce.Auth.Api.csproj" />
 		<ProjectReference Include="..\..\Ecommerce.Catalogo.Api\Ecommerce.Catalogo.Api.csproj" />
 		<ProjectReference Include="..\..\Ecommerce.Pagamento.Worker\Ecommerce.Pagamento.Worker.csproj" />
 		<ProjectReference Include="..\..\Ecommerce.Pedido.Api\Ecommerce.Pedido.Api.csproj" />

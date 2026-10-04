@@ -43,7 +43,7 @@ namespace Ecommerce.Auth.Api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
                         .HasColumnType("varchar(20)")
-                        .HasDefaultValue("Client");
+                        .HasDefaultValue("Cliente");
 
                     b.Property<string>("SenhaHash")
                         .IsRequired()

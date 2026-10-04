@@ -22,5 +22,8 @@ app.MapReverseProxy();
 
 app.Run();
 
-internal partial class Program
-{ }
+namespace Ecommerce.Gateway
+{
+    public partial class Program
+    { }
+}
