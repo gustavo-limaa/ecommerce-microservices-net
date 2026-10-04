@@ -1,11 +1,12 @@
 ﻿using Ecommerce.Pedido.Api.Domain.Common;
+using Ecommerce.Pedido.Api.Domain.Entity;
 using Ecommerce.Pedido.Api.Domain.Interface;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Ecommerce.Pedido.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/produtossincronizados")]
 public class ProdutosSincronizadosController : ControllerBase
 {
     private readonly IProdutoSincronizadoRepository _repository;
@@ -13,6 +14,13 @@ public class ProdutosSincronizadosController : ControllerBase
     public ProdutosSincronizadosController(IProdutoSincronizadoRepository repository)
     {
         _repository = repository;
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Criar([FromBody] ProdutoSincronizado produto, CancellationToken cancellationToken)
+    {
+        await _repository.SalvarOuAtualizarAsync(produto, cancellationToken);
+        return StatusCode(StatusCodes.Status201Created, produto);
     }
 
     [HttpGet]

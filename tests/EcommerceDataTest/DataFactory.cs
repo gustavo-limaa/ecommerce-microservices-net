@@ -1,5 +1,6 @@
 ﻿using Bogus;
 using Bogus.Extensions.Brazil;
+using Ecommerce.Auth.Api.Dtos;
 using Ecommerce.Catalogo.Api.Application.DTOs;
 using Ecommerce.Catalogo.Api.Domain.Entity;
 using Ecommerce.Pedido.Api.Application.Dtos.Request;
@@ -74,6 +75,41 @@ public static class DataFactory
 
     #region DTOs de Request
 
+    public static (RegistroUsuarioDto Registro, LoginDto Login) GerarCredenciaisValidas(string perfil = "Cliente")
+    {
+        var faker = new Faker("pt_BR");
+        var email = faker.Internet.Email().ToLower();
+
+        var senha = faker.Internet.Password(length: 10, memorable: false, prefix: "Aa1!");
+        var registro = new RegistroUsuarioDto(
+            Nome: faker.Person.FullName,
+            Email: email,
+            Senha: senha,
+            Perfil: perfil
+        );
+
+        var login = new LoginDto(
+            Email: email,
+            Senha: senha
+        );
+
+        return (registro, login);
+    }
+
+    public static Faker<LoginDto> LoginDtoFaker => new Faker<LoginDto>("pt_BR")
+        .CustomInstantiator(f => new LoginDto(
+            Email: f.Internet.Email(),
+            Senha: f.Internet.Password(8, false, null, "Aa1!") // Garante uma senha com complexidade mínima
+        ));
+
+    public static Faker<RegistroUsuarioDto> RegistroUsuarioDtoFaker => new Faker<RegistroUsuarioDto>("pt_BR")
+    .CustomInstantiator(f => new RegistroUsuarioDto(
+        Nome: f.Person.FullName,
+        Email: f.Internet.Email().ToLower(), // ToLower ajuda a evitar inconsistência de caixa
+        Senha: f.Internet.Password(8, false, @"\w", "Aa1!"),
+        Perfil: f.PickRandom(new[] { "Cliente", "Admin" })
+    ));
+
     public static Faker<PedidoDtoCreate> PedidoDtoCreateFaker => new Faker<PedidoDtoCreate>("pt_BR")
         .CustomInstantiator(f => new PedidoDtoCreate(
             ClienteId: f.Random.Guid(),
@@ -90,7 +126,8 @@ public static class DataFactory
             Bairro: f.Address.County(),
             Cidade: f.Address.City(),
             Estado: f.Address.StateAbbr(),
-            Cep: f.Address.ZipCode("#####-###")
+
+             Cep: f.Address.ZipCode("########")
         ));
 
     public static Faker<ItemPedidoDtoCreate> ItemPedidoDtoCreateFaker => new Faker<ItemPedidoDtoCreate>("pt_BR")
@@ -142,6 +179,24 @@ public static class DataFactory
             Descricao: f.Commerce.ProductDescription(),
             Ativo: f.Random.Bool()
         ));
+
+    public static PedidoDtoCreate GerarPedidoDtoValidoComProdutos(List<Guid> produtosIds)
+    {
+        var pedidoDto = PedidoDtoCreateFaker.Generate();
+        pedidoDto.Itens.Clear();
+
+        foreach (var produtoId in produtosIds)
+        {
+            pedidoDto.Itens.Add(new ItemPedidoDtoCreate(
+                ProdutoId: produtoId,
+                NomeProduto: new Faker("pt_BR").Commerce.ProductName(),
+                PrecoUnitario: new Faker().Random.Decimal(10, 500),
+                Quantidade: new Faker().Random.Number(1, 5)
+            ));
+        }
+
+        return pedidoDto;
+    }
 
     #endregion DTOs de Request
 }

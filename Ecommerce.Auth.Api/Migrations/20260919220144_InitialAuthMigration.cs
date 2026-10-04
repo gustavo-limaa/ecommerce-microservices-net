@@ -25,7 +25,7 @@ namespace Ecommerce.Auth.Api.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     SenhaHash = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    Perfil = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false, defaultValue: "Client")
+                    Perfil = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false, defaultValue: "Cliente")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     CriadoEm = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP(6)")
                 },

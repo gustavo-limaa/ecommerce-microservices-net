@@ -28,10 +28,16 @@ public static class AuthEndpoints
         var (email, erroEmail) = Email.Criar(dto.Email);
         if (email is null)
             return Results.BadRequest(new { mensagem = erroEmail });
-
+        if (string.IsNullOrWhiteSpace(dto.Senha) || dto.Senha.Length < 6)
+            return Results.BadRequest(new { mensagem = "A senha deve ter pelo menos 6 caracteres." });
+        if (string.IsNullOrWhiteSpace(dto.Nome))
+            return Results.BadRequest(new { mensagem = "O nome é obrigatório." });
+        if (string.IsNullOrWhiteSpace(dto.Perfil))
+            return Results.BadRequest(new { mensagem = "O perfil é obrigatório." });
         if (!Enum.TryParse<PerfilUsuario>(dto.Perfil, true, out var perfilEnum))
             return Results.BadRequest(new { mensagem = "Perfil inválido. Use 'Cliente' ou 'Admin'." });
-
+        if (string.IsNullOrWhiteSpace(dto.Senha))
+            return Results.BadRequest(new { mensagem = "A senha é obrigatória." });
         // Verifica se já existe um usuário cadastrado com o mesmo e-mail
         var emailExiste = await context.Usuarios.AnyAsync(u => u.Email.Valor == email.Valor);
         if (emailExiste)

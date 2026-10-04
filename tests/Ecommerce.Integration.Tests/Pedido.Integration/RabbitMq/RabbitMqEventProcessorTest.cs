@@ -7,7 +7,7 @@ using Moq;
 
 namespace Ecommerce.Integration.Tests.Pedido.Integration.RabbitMq;
 
-[Collection("PedidoTestCollection")]
+[Collection("PedidoCollection")]
 public class RabbitMqEventProcessorTest : PedidoTestBase
 {
     public RabbitMqEventProcessorTest(PedidoWebApplicationFactory factory) : base(factory)

@@ -21,3 +21,9 @@ app.UseAuthorization();
 app.MapReverseProxy();
 
 app.Run();
+
+namespace Ecommerce.Gateway
+{
+    public partial class Program
+    { }
+}

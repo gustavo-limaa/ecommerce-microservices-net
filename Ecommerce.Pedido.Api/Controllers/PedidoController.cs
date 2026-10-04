@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Ecommerce.Pedido.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/pedidos")]
 public class PedidosController : ControllerBase
 {
     private readonly ServicePedido _pedidoService;
@@ -24,7 +24,7 @@ public class PedidosController : ControllerBase
         return CreatedAtAction(nameof(ObterPorId), new { id = response.Id }, response);
     }
 
-    [HttpGet("{id:guid}")]
+    [HttpGet("{id:guid}", Name = "ObterPedidoPorId")]
     public async Task<ActionResult<PedidoDtoResponse>> ObterPorId(Guid id, CancellationToken cancellationToken)
     {
         var response = await _pedidoService.ObterPedidoPorIdAsync(id, cancellationToken);

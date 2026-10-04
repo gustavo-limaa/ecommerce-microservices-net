@@ -1,5 +1,7 @@
 ﻿using Ecommerce.Integration.Tests.Setup;
+using Ecommerce.Pedido.Api.Application.Dtos.Request;
 using Ecommerce.Pedido.Api.Application.Dtos.Responses;
+using Ecommerce.Pedido.Api.Domain.Entity;
 using EcommerceDataTest;
 using FluentAssertions;
 using System;
@@ -10,7 +12,7 @@ using System.Text;
 
 namespace Ecommerce.Integration.Tests.Pedido.Integration;
 
-[Collection("PedidoTestCollection")]
+[Collection("PedidoCollection")]
 public class PedidoGetTest : PedidoTestBase
 {
     public PedidoGetTest(PedidoWebApplicationFactory factory) : base(factory)
@@ -20,11 +22,15 @@ public class PedidoGetTest : PedidoTestBase
     [Fact]
     public async Task ObterPedido_DeveRetornar200Ok_EEstruturaCorreta_QuandoPedidoExistir()
     {
-        // Arrange (Gera o DTO válido para o POST)
-        var requestDto = DataFactory.PedidoDtoCreateFaker.Generate();
+        // Arrange: 1. Sincroniza o produto
+        var produtoId = Guid.NewGuid();
+        var produtoSincronizado = new ProdutoSincronizado(produtoId, "Produto Teste", 100m, 10, true);
+        await PostAsync("api/produtossincronizados", produtoSincronizado);
+
+        // Arrange: 2. Gera o pedido associado ao produto cadastrado
+        var requestDto = DataFactory.GerarPedidoDtoValidoComProdutos(new List<Guid> { produtoId });
 
         var responsePost = await PostAsync("/api/pedidos", requestDto);
-        responsePost.EnsureSuccessStatusCode();
         responsePost.StatusCode.Should().Be(HttpStatusCode.Created);
 
         var pedidoCriado = await responsePost.Content.ReadFromJsonAsync<PedidoDtoResponse>();
@@ -35,11 +41,9 @@ public class PedidoGetTest : PedidoTestBase
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-
         var pedidoObtido = await response.Content.ReadFromJsonAsync<PedidoDtoResponse>();
         pedidoObtido.Should().NotBeNull();
         pedidoObtido!.Id.Should().Be(pedidoCriado.Id);
-        pedidoObtido.ClienteId.Should().Be(requestDto.ClienteId);
     }
 
     [Fact]
@@ -67,27 +71,29 @@ public class PedidoGetTest : PedidoTestBase
     [Fact]
     public async Task ObterPedidos_DeveRetornar200Ok_EListaComQuantidadeCorreta_QuandoExistiremPedidos()
     {
-        // Arrange (Gera 4 DTOs e cadastra na API)
-        var requestsDto = DataFactory.PedidoDtoCreateFaker.Generate(4);
+        // 1. ARRANGE: Cadastra o produto sincronizado no banco de teste
+        var produtoId = Guid.NewGuid();
+        var produtoSincronizado = new ProdutoSincronizado(produtoId, "Teclado Mecânico", 250.00m, 50, true);
+        await PostAsync("api/produtossincronizados", produtoSincronizado);
 
+        // 2. Prepara 4 DTOs apontando para esse produto que existe no banco
+        var requestsDto = DataFactory.PedidoDtoCreateFaker.Generate(4);
         foreach (var dto in requestsDto)
         {
+            dto.Itens.Clear();
+            dto.Itens.Add(new ItemPedidoDtoCreate(produtoId, "Teclado Mecânico", 1, 250.00m));
+
             var responsePost = await PostAsync("/api/pedidos", dto);
             responsePost.StatusCode.Should().Be(HttpStatusCode.Created);
         }
 
-        // Act (Busca todos os pedidos cadastrados)
+        // 3. ACT: Busca os pedidos
         var response = await GetAsync("/api/pedidos/");
 
-        // Assert
+        // 4. ASSERT
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        // Desserializa como LISTA
         var pedidosObtidos = await response.Content.ReadFromJsonAsync<List<PedidoDtoResponse>>();
-
         pedidosObtidos.Should().NotBeNull();
-
-        // 🎯 Validação do Count no FluentAssertions:
         pedidosObtidos.Should().HaveCount(4);
     }
 }

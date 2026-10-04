@@ -1,3 +1,5 @@
-﻿namespace Ecommerce.Auth.Api.Dtos;
+﻿using System.ComponentModel.DataAnnotations;
 
-public sealed record RegistroUsuarioDto(string Nome, string Email, string Senha, string Perfil = "Client");
+namespace Ecommerce.Auth.Api.Dtos;
+
+public sealed record RegistroUsuarioDto(string Nome, string Email, [StringLength(255, MinimumLength = 6)] string Senha, string Perfil = "Cliente");

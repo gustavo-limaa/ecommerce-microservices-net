@@ -6,6 +6,7 @@ using Ecommerce.Pedido.Api.Domain.Common;
 using Ecommerce.Pedido.Api.Domain.GlobalErros;
 using Ecommerce.Pedido.Api.Domain.GlobalErros.Exceptions;
 using Ecommerce.Pedido.Api.Domain.Interface;
+using Ecommerce.Pedido.Api.Infrastructure.Repositories;
 using Ecommerce.Pedido.Api.Mensageria.Events;
 using Ecommerce.Pedido.Api.Mensageria.Services;
 using Aplication = Ecommerce.Pedido.Api.Domain.GlobalErros.Exceptions.BadRequestException;
@@ -14,25 +15,32 @@ namespace Ecommerce.Pedido.Api.Application.Service;
 
 public class ServicePedido
 {
-    private readonly IPedidoRepository _pedidoRepository;
+    private readonly IPedidoRepository _pedidoRepository; private readonly IProdutoSincronizadoRepository _produtoSincronizadoRepository;
     private readonly IEventProcessor _eventProcessor;
 
-    public ServicePedido(IPedidoRepository pedidoRepository, IEventProcessor eventProcessor)
+    public ServicePedido(IPedidoRepository pedidoRepository, IProdutoSincronizadoRepository produtoSincronizadoRepository, IEventProcessor eventProcessor)
     {
         _pedidoRepository = pedidoRepository;
+        _produtoSincronizadoRepository = produtoSincronizadoRepository;
         _eventProcessor = eventProcessor;
     }
 
     public async Task<PedidoDtoResponse> AdicionarPedidoAsync(PedidoDtoCreate request, CancellationToken cancellationToken = default)
     {
+        // Opcional: Validar se os produtos dos itens do pedido existem na base sincronizada
+        foreach (var item in request.Itens)
+        {
+            var produtoSincronizado = await _produtoSincronizadoRepository.ObterPorIdAsync(item.ProdutoId, cancellationToken);
+            if (produtoSincronizado is null)
+            {
+                throw new BadRequestException($"Produto com ID {item.ProdutoId} não foi sincronizado.");
+            }
+        }
+
         var pedido = request.ToEntity();
 
         await _pedidoRepository.AdicionarAsync(pedido, cancellationToken);
-
-        await _pedidoRepository.SaveAsync(cancellationToken);
-
-        var evento = new PedidoCriadoEvento(PedidoId: pedido.Id, ClienteId: pedido.ClienteId, ValorTotal: pedido.ValorTotal.Valor, DataCriacao: pedido.DataCriacao);
-
+        var evento = new PedidoCriadoEvento(pedido.Id, pedido.ClienteId, pedido.ValorTotal.Valor, pedido.DataCriacao);
         await _eventProcessor.PublicarEventoAsync(evento, "pedido-criado-queue", cancellationToken);
 
         return pedido.ToResponse();

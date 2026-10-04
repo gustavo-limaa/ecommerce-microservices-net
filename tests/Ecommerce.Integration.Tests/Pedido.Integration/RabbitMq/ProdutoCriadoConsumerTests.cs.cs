@@ -8,7 +8,7 @@ using Ecommerce.Pedido.Api.Mensageria.Services;
 
 namespace Ecommerce.Integration.Tests.Pedido.Integration.RabbitMq;
 
-[Collection("PedidoTestCollection")]
+[Collection("PedidoCollection")]
 public class ProdutoCriadoConsumerTests : PedidoTestBase
 {
     public ProdutoCriadoConsumerTests(PedidoWebApplicationFactory factory) : base(factory)

@@ -22,3 +22,9 @@ var app = builder.Build();
 app.MapAuthEndpoints();
 
 app.Run();
+
+namespace Ecommerce.Auth.Api
+{
+    public partial class Program
+    { }
+}
