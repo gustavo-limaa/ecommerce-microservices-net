@@ -3,26 +3,31 @@ using Ecommerce.Pedido.Api.Application.Dtos.Responses;
 using Ecommerce.Pedido.Api.Application.Mappers.ForEntities;
 using Ecommerce.Pedido.Api.Application.Mappers.ForResponse;
 using Ecommerce.Pedido.Api.Domain.Common;
+using Ecommerce.Pedido.Api.Domain.Entity;
 using Ecommerce.Pedido.Api.Domain.GlobalErros;
 using Ecommerce.Pedido.Api.Domain.GlobalErros.Exceptions;
 using Ecommerce.Pedido.Api.Domain.Interface;
 using Ecommerce.Pedido.Api.Infrastructure.Repositories;
 using Ecommerce.Pedido.Api.Mensageria.Events;
 using Ecommerce.Pedido.Api.Mensageria.Services;
+using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using Aplication = Ecommerce.Pedido.Api.Domain.GlobalErros.Exceptions.BadRequestException;
 
 namespace Ecommerce.Pedido.Api.Application.Service;
 
 public class ServicePedido
 {
+    private readonly IOutboxService _outboxService;
     private readonly IPedidoRepository _pedidoRepository; private readonly IProdutoSincronizadoRepository _produtoSincronizadoRepository;
     private readonly IEventProcessor _eventProcessor;
 
-    public ServicePedido(IPedidoRepository pedidoRepository, IProdutoSincronizadoRepository produtoSincronizadoRepository, IEventProcessor eventProcessor)
+    public ServicePedido(IPedidoRepository pedidoRepository, IProdutoSincronizadoRepository produtoSincronizadoRepository, IEventProcessor eventProcessor, IOutboxService outboxService)
     {
         _pedidoRepository = pedidoRepository;
         _produtoSincronizadoRepository = produtoSincronizadoRepository;
         _eventProcessor = eventProcessor;
+        _outboxService = outboxService;
     }
 
     public async Task<PedidoDtoResponse> AdicionarPedidoAsync(PedidoDtoCreate request, CancellationToken cancellationToken = default)
@@ -40,9 +45,11 @@ public class ServicePedido
         var pedido = request.ToEntity();
 
         await _pedidoRepository.AdicionarAsync(pedido, cancellationToken);
+
         var evento = new PedidoCriadoEvento(pedido.Id, pedido.ClienteId, pedido.ValorTotal.Valor, pedido.DataCriacao);
         await _eventProcessor.PublicarEventoAsync(evento, "pedido-criado-queue", cancellationToken);
 
+        await _outboxService.SalvarComOutboxAsync(pedido, evento, cancellationToken);
         return pedido.ToResponse();
     }
 

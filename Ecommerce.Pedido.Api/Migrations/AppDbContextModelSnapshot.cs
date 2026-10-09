@@ -18,7 +18,7 @@ namespace Ecommerce.Pedido.Api.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.0")
+                .HasAnnotation("ProductVersion", "8.0.11")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
@@ -64,6 +64,34 @@ namespace Ecommerce.Pedido.Api.Migrations
                     b.HasIndex("PedidoId");
 
                     b.ToTable("ItensPedido", (string)null);
+                });
+
+            modelBuilder.Entity("Ecommerce.Pedido.Api.Domain.Entity.OutboxMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Error")
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime>("OccurredOnUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("ProcessedOnUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("OutboxMessages");
                 });
 
             modelBuilder.Entity("Ecommerce.Pedido.Api.Domain.Entity.Pedido", b =>
