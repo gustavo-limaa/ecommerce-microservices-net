@@ -1,4 +1,5 @@
 ﻿using Ecommerce.Pedido.Api.Application.Service;
+using Ecommerce.Pedido.Api.BackgroundServices;
 using Ecommerce.Pedido.Api.Domain.Interface;
 using Ecommerce.Pedido.Api.Infrastructure.Data;
 using Ecommerce.Pedido.Api.Infrastructure.Repositories;
@@ -22,6 +23,7 @@ public static class DependencyInjection
         services.AddScoped<IEventProcessor, RabbitMqEventProcessor>();
         services.AddScoped<IProdutoSincronizadoRepository, ProdutoSincronizadoRepository>();
         services.AddScoped<IOutboxService, OutboxService>();
+        services.AddHostedService<OutboxPublisherWorker>();
         services.Configure<RabbitMqSettings>(configuration.GetSection("RabbitMqSettings"));
         return services;
     }

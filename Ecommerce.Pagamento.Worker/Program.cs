@@ -5,6 +5,7 @@ var builder = Host.CreateApplicationBuilder(args);
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 builder.Services.AddHostedService<Worker>();
 builder.Services.AddScoped<IPagamentoService, PagamentoService>();
+builder.Services.AddMemoryCache();
 
 var host = builder.Build();
 host.Run();

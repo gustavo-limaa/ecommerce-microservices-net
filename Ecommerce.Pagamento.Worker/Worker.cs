@@ -60,20 +60,35 @@ public class Worker(
                     var body = ea.Body.ToArray();
                     var message = Encoding.UTF8.GetString(body);
                     var pedidoEvento = JsonSerializer.Deserialize<PedidoCriadoEvent>(message);
-
                     if (pedidoEvento != null)
                     {
                         using var scope = serviceProvider.CreateScope();
                         var pagamentoService = scope.ServiceProvider.GetRequiredService<IPagamentoService>();
 
-                        var resultadoPagamento = await pagamentoService.ProcessarPagamento(pedidoEvento);
+                        // 1. Verifica se já processou
+                        var jaProcessado = await pagamentoService.PagamentoJaFoiProcessadoAsync(pedidoEvento.PedidoId);
 
-                        var respostaBody = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(resultadoPagamento));
-                        await channel.BasicPublishAsync("", QueueResposta, true, respostaBody, stoppingToken);
+                        if (jaProcessado)
+                        {
+                            logger.LogWarning("⚠️ Pedido {PedidoId} já foi processado anteriormente. Ignorando duplicata para evitar cobrança dupla...", pedidoEvento.PedidoId);
+                        }
+                        else
+                        {
+                            // 2. Processa o pagamento normalmente
+                            var resultadoPagamento = await pagamentoService.ProcessarPagamento(pedidoEvento);
 
-                        logger.LogInformation("📢 Resposta de pagamento enviada para a fila: {Queue}", QueueResposta);
+                            // 3. Marca como processado na memória para blindar contra duplicidade no futuro
+                            pagamentoService.MarcarComoProcessado(pedidoEvento.PedidoId);
+
+                            // 4. Publica a resposta
+                            var respostaBody = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(resultadoPagamento));
+                            await channel.BasicPublishAsync("", QueueResposta, true, respostaBody, stoppingToken);
+
+                            logger.LogInformation("📢 Resposta de pagamento enviada para a fila: {Queue}", QueueResposta);
+                        }
                     }
 
+                    // O RabbitMQ recebe o Ack independentemente de ter processado agora ou ignorado a duplicata
                     await channel.BasicAckAsync(ea.DeliveryTag, false, stoppingToken);
                 }
                 catch (Exception ex)
