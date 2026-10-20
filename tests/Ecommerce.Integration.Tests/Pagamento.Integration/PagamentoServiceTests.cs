@@ -2,6 +2,7 @@
 using Ecommerce.Pagamento.Worker.Service;
 using Ecommerce.Pagamento.Worker.utility;
 using FluentAssertions;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -9,13 +10,15 @@ namespace Ecommerce.Integration.Tests.Pagamento.Integration;
 
 public class PagamentoServiceTests
 {
+    private readonly Mock<IMemoryCache> _cacheMock;
     private readonly Mock<ILogger<PagamentoService>> _loggerMock;
     private readonly PagamentoService _service;
 
     public PagamentoServiceTests()
     {
+        _cacheMock = new Mock<IMemoryCache>();
         _loggerMock = new Mock<ILogger<PagamentoService>>();
-        _service = new PagamentoService(_loggerMock.Object);
+        _service = new PagamentoService(_loggerMock.Object, _cacheMock.Object);
     }
 
     [Fact]
@@ -59,5 +62,43 @@ public class PagamentoServiceTests
         // Assert
         resultado.Sucesso.Should().BeFalse();
         resultado.Status.Should().Be(StatusPagamento.Reprovado);
+    }
+
+    [Fact]
+    public async Task PagamentoJaFoiProcessadoAsync_DeveRetornarTrue_QuandoPedidoEstiverNoCache()
+    {
+        // Arrange
+        var pedidoId = Guid.NewGuid();
+        object valorRetornoDoCache = true;
+
+        // Simulamos que o IMemoryCache encontrou a chave
+        _cacheMock
+            .Setup(c => c.TryGetValue(pedidoId, out valorRetornoDoCache))
+            .Returns(true);
+
+        // Act
+        var resultado = await _service.PagamentoJaFoiProcessadoAsync(pedidoId);
+
+        // Assert
+        resultado.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task PagamentoJaFoiProcessadoAsync_DeveRetornarFalse_QuandoPedidoNaoEstiverNoCache()
+    {
+        // Arrange
+        var pedidoId = Guid.NewGuid();
+        object valorRetornoDoCache = null;
+
+        // Simulamos que o cache NÃO encontrou a chave (retorna false)
+        _cacheMock
+            .Setup(c => c.TryGetValue(pedidoId, out valorRetornoDoCache))
+            .Returns(false);
+
+        // Act
+        var resultado = await _service.PagamentoJaFoiProcessadoAsync(pedidoId);
+
+        // Assert
+        resultado.Should().BeFalse();
     }
 }

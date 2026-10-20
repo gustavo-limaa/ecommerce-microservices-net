@@ -5,6 +5,7 @@ using Ecommerce.Pedido.Api.Domain.GlobalErros.Exceptions;
 using Ecommerce.Pedido.Api.Domain.Interface;
 using Ecommerce.Pedido.Api.Mensageria.Services;
 using EcommerceDataTest;
+
 using Moq;
 using PedidoE = Ecommerce.Pedido.Api.Domain.Entity.Pedido;
 
@@ -12,6 +13,7 @@ namespace Ecommerce.UnitarioTests.Pedido.Unitario;
 
 public class ServicePedidoTests
 {
+    private readonly Mock<IOutboxService> _IoutboxServiceMock;
     private readonly Mock<IPedidoRepository> _repositoryMock;
     private readonly Mock<IProdutoSincronizadoRepository> _produtoSincronizadoRepositoryMock;
     private readonly ServicePedido _service;
@@ -23,12 +25,14 @@ public class ServicePedidoTests
         _repositoryMock = new Mock<IPedidoRepository>();
         _produtoSincronizadoRepositoryMock = new Mock<IProdutoSincronizadoRepository>();
         _eventProcessorMock = new Mock<IEventProcessor>();
+        _IoutboxServiceMock = new Mock<IOutboxService>();
 
         // 2. Injeta os objetos mockados no Service
         _service = new ServicePedido(
             _repositoryMock.Object,
             _produtoSincronizadoRepositoryMock.Object,
-            _eventProcessorMock.Object);
+            _eventProcessorMock.Object,
+            _IoutboxServiceMock.Object);
     }
 
     [Fact]

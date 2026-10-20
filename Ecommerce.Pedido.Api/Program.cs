@@ -23,6 +23,7 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 builder.Services.AddHostedService<ProdutoCriadoConsumer>();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
@@ -36,6 +37,8 @@ var app = builder.Build();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseExceptionHandler();
+app.UseSwagger();
+app.UseSwaggerUI();
 if (app.Environment.IsDevelopment())
 {
     app.MapScalarApiReference(options =>

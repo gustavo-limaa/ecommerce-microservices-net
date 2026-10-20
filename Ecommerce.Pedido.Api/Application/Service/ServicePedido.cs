@@ -32,7 +32,6 @@ public class ServicePedido
 
     public async Task<PedidoDtoResponse> AdicionarPedidoAsync(PedidoDtoCreate request, CancellationToken cancellationToken = default)
     {
-        // Opcional: Validar se os produtos dos itens do pedido existem na base sincronizada
         foreach (var item in request.Itens)
         {
             var produtoSincronizado = await _produtoSincronizadoRepository.ObterPorIdAsync(item.ProdutoId, cancellationToken);
@@ -43,13 +42,10 @@ public class ServicePedido
         }
 
         var pedido = request.ToEntity();
-
-        await _pedidoRepository.AdicionarAsync(pedido, cancellationToken);
-
         var evento = new PedidoCriadoEvento(pedido.Id, pedido.ClienteId, pedido.ValorTotal.Valor, pedido.DataCriacao);
-        await _eventProcessor.PublicarEventoAsync(evento, "pedido-criado-queue", cancellationToken);
 
         await _outboxService.SalvarComOutboxAsync(pedido, evento, cancellationToken);
+
         return pedido.ToResponse();
     }
 
