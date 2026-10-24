@@ -6,8 +6,6 @@ using Ecommerce.Catalogo.Api.Infra.Repository;
 using Ecommerce.Catalogo.Api.Mensageria.Services;
 using Ecommerce.Catalogo.Api.Mensageria.Settings;
 using Microsoft.EntityFrameworkCore;
-using Scalar.AspNetCore;
-using Microsoft.AspNetCore.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,17 +38,6 @@ using (var scope = app.Services.CreateScope())
 }
 // Middlewares
 app.UseExceptionHandler();
-
-if (app.Environment.IsDevelopment())
-{
-    app.MapScalarApiReference(options =>
-    {
-        options
-            .WithTitle("Ecommerce - Catalogo API")
-            .WithTheme(ScalarTheme.Moon)
-            .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
-    });
-}
 
 app.UseAuthorization();
 app.MapControllers();

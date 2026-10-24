@@ -4,8 +4,7 @@ using Ecommerce.Pedido.Api.Infrastructure.Data;
 using Ecommerce.Pedido.Api.Mensageria.Services;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
-using Scalar.AspNetCore;
-using Microsoft.AspNetCore.OpenApi;
+
 using FluentValidation.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,7 +22,7 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+
 builder.Services.AddHostedService<ProdutoCriadoConsumer>();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
@@ -37,18 +36,7 @@ var app = builder.Build();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseExceptionHandler();
-app.UseSwagger();
-app.UseSwaggerUI();
-if (app.Environment.IsDevelopment())
-{
-    app.MapScalarApiReference(options =>
-    {
-        options
-            .WithTitle("Ecommerce - Pedido API")
-            .WithTheme(ScalarTheme.Moon)
-            .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
-    });
-}
+
 app.UseHttpsRedirection();
 
 app.MapControllers();

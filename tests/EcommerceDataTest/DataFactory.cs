@@ -99,13 +99,13 @@ public static class DataFactory
     public static Faker<LoginDto> LoginDtoFaker => new Faker<LoginDto>("pt_BR")
         .CustomInstantiator(f => new LoginDto(
             Email: f.Internet.Email(),
-            Senha: f.Internet.Password(8, false, null, "Aa1!") // Garante uma senha com complexidade mínima
+            Senha: f.Internet.Password(8, false, null, "Aa1!")
         ));
 
     public static Faker<RegistroUsuarioDto> RegistroUsuarioDtoFaker => new Faker<RegistroUsuarioDto>("pt_BR")
     .CustomInstantiator(f => new RegistroUsuarioDto(
         Nome: f.Person.FullName,
-        Email: f.Internet.Email().ToLower(), // ToLower ajuda a evitar inconsistência de caixa
+        Email: f.Internet.Email().ToLower(),
         Senha: f.Internet.Password(8, false, @"\w", "Aa1!"),
         Perfil: f.PickRandom(new[] { "Cliente", "Admin" })
     ));
@@ -115,7 +115,7 @@ public static class DataFactory
             ClienteId: f.Random.Guid(),
             CpfCliente: f.Person.Cpf(false),
             EnderecoEntrega: EnderecoDtoCreateFaker.Generate(),
-            Itens: ItemPedidoDtoCreateFaker.Generate(2) // 2 itens costuma ser ideal para testes rápidos
+            Itens: ItemPedidoDtoCreateFaker.Generate(2)
         ));
 
     public static Faker<EnderecoDtoCreate> EnderecoDtoCreateFaker => new Faker<EnderecoDtoCreate>("pt_BR")
@@ -140,7 +140,7 @@ public static class DataFactory
 
     public static Faker<AtualizarEstoqueDTO> AtualizarEstoqueDTOFaker => new Faker<AtualizarEstoqueDTO>("pt_BR")
         .CustomInstantiator(f => new AtualizarEstoqueDTO(
-            Quantidade: f.Random.Number(-5, 5) // Pode ser positivo ou negativo para simular adição ou subtração de estoque
+            Quantidade: f.Random.Number(-5, 5)
         ));
 
     public static Faker<CriarProdutoDTO> CriarProdutoDTOFaker(Guid categoriaId) =>
@@ -156,8 +156,8 @@ public static class DataFactory
     public static Faker<CriarCategoriaDTO> CriarCategoriaDTOFaker =>
     new Faker<CriarCategoriaDTO>("pt_BR")
         .CustomInstantiator(f => new CriarCategoriaDTO(
-            Nome: f.Commerce.Categories(1)[0],             // Garante nome válido de categoria
-            Descricao: f.Lorem.Sentence(5)                 // Garante frase válida
+            Nome: f.Commerce.Categories(1)[0],
+            Descricao: f.Lorem.Sentence(5)
         ));
 
     public static Faker<ProdutoResponseDTO> ProdutoResponseDTOFaker => new Faker<ProdutoResponseDTO>("pt_BR")
