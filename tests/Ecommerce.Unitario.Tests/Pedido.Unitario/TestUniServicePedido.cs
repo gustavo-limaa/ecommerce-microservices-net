@@ -3,6 +3,7 @@ using Ecommerce.Pedido.Api.Application.Service;
 using Ecommerce.Pedido.Api.Domain.Entity;
 using Ecommerce.Pedido.Api.Domain.GlobalErros.Exceptions;
 using Ecommerce.Pedido.Api.Domain.Interface;
+using Ecommerce.Pedido.Api.Mensageria.Events;
 using Ecommerce.Pedido.Api.Mensageria.Services;
 using EcommerceDataTest;
 
@@ -108,10 +109,14 @@ public class ServicePedidoTests
         Assert.NotNull(result);
         Assert.Equal(dto.ClienteId, result.ClienteId);
 
-        _repositoryMock.Verify(
-            r => r.AdicionarAsync(It.IsAny<PedidoE>(), It.IsAny<CancellationToken>()),
-            Times.Once
-        );
+        _IoutboxServiceMock.Verify(
+    x => x.SalvarComOutboxAsync(
+        It.IsAny<PedidoE>(),
+        It.IsAny<PedidoCriadoEvento>(),
+        It.IsAny<CancellationToken>()
+    ),
+    Times.Once
+);
     }
 
     [Fact]

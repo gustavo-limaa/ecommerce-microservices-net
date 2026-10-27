@@ -24,6 +24,7 @@ public static class DependencyInjection
         services.AddScoped<IProdutoSincronizadoRepository, ProdutoSincronizadoRepository>();
         services.AddScoped<IOutboxService, OutboxService>();
         services.AddHostedService<OutboxPublisherWorker>();
+        services.AddHostedService<OutboxCleanupWorker>();
         services.Configure<RabbitMqSettings>(configuration.GetSection("RabbitMqSettings"));
         return services;
     }

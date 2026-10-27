@@ -21,6 +21,15 @@
             OccurredOnUtc = DateTime.UtcNow;
         }
 
+        public OutboxMessage(Guid id, string type, string content, DateTime occurredOnUtc, DateTime? processedOnUtc)
+        {
+            Id = id;
+            Type = type;
+            Content = content;
+            OccurredOnUtc = occurredOnUtc;
+            ProcessedOnUtc = processedOnUtc;
+        }
+
         public void MarcarComoProcessado()
         {
             ProcessedOnUtc = DateTime.UtcNow;
