@@ -16,7 +16,7 @@ public class RabbitMqEventProcessor : IEventProcessor
         _settings = options.Value;
     }
 
-    public async Task PublicarEventoAsync<T>(T evento, string queueName, CancellationToken cancellationToken = default) where T : class
+    public async Task PublicarEventoAsync<T>(T evento, string queueName, CancellationToken cancellationToken = default, Guid correlationId = default) where T : class
     {
         var factory = new ConnectionFactory
         {
@@ -38,16 +38,26 @@ public class RabbitMqEventProcessor : IEventProcessor
             arguments: null,
             cancellationToken: cancellationToken
         );
+        // 1. Cria as propriedades base
+        var properties = new BasicProperties();
 
-        // Serializa o objeto do evento para JSON
+        if (correlationId != Guid.Empty)
+        {
+            properties.Headers = new Dictionary<string, object?>
+    {
+        { "X-Correlation-Id", correlationId.ToString() }
+    };
+        }
+
         var jsonMessage = JsonSerializer.Serialize(evento);
         var body = Encoding.UTF8.GetBytes(jsonMessage);
 
-        // Publica a mensagem na fila informada
+        // 3. Publica passando as propriedades
         await channel.BasicPublishAsync(
             exchange: string.Empty,
             routingKey: queueName,
             mandatory: false,
+            basicProperties: properties,
             body: body,
             cancellationToken: cancellationToken
         );

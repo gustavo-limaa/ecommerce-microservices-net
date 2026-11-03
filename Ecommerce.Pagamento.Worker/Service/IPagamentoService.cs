@@ -9,5 +9,9 @@ namespace Ecommerce.Pagamento.Worker.Service
     public interface IPagamentoService
     {
         public Task<PagamentoConcluidoEvent> ProcessarPagamento(PedidoCriadoEvent pedidoCriadoEvent);
+
+        public Task<bool> PagamentoJaFoiProcessadoAsync(Guid pedidoId);
+
+        public void MarcarComoProcessado(Guid pedidoId);
     }
 }

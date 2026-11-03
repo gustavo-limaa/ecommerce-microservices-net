@@ -1,11 +1,12 @@
 ﻿using Ecommerce.Pagamento.Worker.Dtos;
 using Ecommerce.Pagamento.Worker.Events;
 using Ecommerce.Pagamento.Worker.utility;
+using Microsoft.Extensions.Caching.Memory;
 using QRCoder;
 
 namespace Ecommerce.Pagamento.Worker.Service;
 
-public class PagamentoService(ILogger<PagamentoService> logger) : IPagamentoService
+public class PagamentoService(ILogger<PagamentoService> logger, IMemoryCache cache) : IPagamentoService
 {
     public async Task<PagamentoConcluidoEvent> ProcessarPagamento(PedidoCriadoEvent pedidoCriadoEvent)
     {
@@ -30,6 +31,19 @@ public class PagamentoService(ILogger<PagamentoService> logger) : IPagamentoServ
             DateTime.Now,
             payloadPix
             );
+    }
+
+    public Task<bool> PagamentoJaFoiProcessadoAsync(Guid pedidoId)
+    {
+        // Busca na memória RAM do Worker. Se existir a chave, retorna true.
+        bool jaProcessado = cache.TryGetValue(pedidoId, out _);
+        return Task.FromResult(jaProcessado);
+    }
+
+    public void MarcarComoProcessado(Guid pedidoId)
+    {
+        // Salva o ID do pedido na memória por 24 horas
+        cache.Set(pedidoId, true, TimeSpan.FromHours(24));
     }
 
     private static string GerarQrCodeBase64(string payload)

@@ -4,9 +4,9 @@ using Ecommerce.Pedido.Api.Infrastructure.Data;
 using Ecommerce.Pedido.Api.Mensageria.Services;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
-using Scalar.AspNetCore;
-using Microsoft.AspNetCore.OpenApi;
+
 using FluentValidation.AspNetCore;
+using Ecommerce.Pedido.Api.Domain.GlobalErros.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 if (builder.Environment.IsEnvironment("Testing"))
@@ -19,10 +19,11 @@ builder.Services
     .AddInfrastructure(builder.Configuration)
     .AddApplication();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
-// Integração do FluentValidation com o pipeline MVC para validação automática de modelos
+
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+
 builder.Services.AddHostedService<ProdutoCriadoConsumer>();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
@@ -36,16 +37,7 @@ var app = builder.Build();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseExceptionHandler();
-if (app.Environment.IsDevelopment())
-{
-    app.MapScalarApiReference(options =>
-    {
-        options
-            .WithTitle("Ecommerce - Pedido API")
-            .WithTheme(ScalarTheme.Moon)
-            .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
-    });
-}
+app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseHttpsRedirection();
 
 app.MapControllers();
@@ -59,3 +51,36 @@ app.Run();
 
 internal partial class Program
 { }
+
+public class CorrelationIdMiddleware
+{
+    private readonly RequestDelegate _next;
+    private const string CorrelationIdHeaderName = "X-Correlation-Id";
+
+    public CorrelationIdMiddleware(RequestDelegate next)
+    {
+        _next = next;
+    }
+
+    public async Task InvokeAsync(HttpContext context, ICorrelationIdContext correlationContext)
+    {
+        if (!context.Request.Headers.TryGetValue(CorrelationIdHeaderName, out var headerValues) ||
+            !Guid.TryParse(headerValues.FirstOrDefault(), out var correlationId))
+        {
+            correlationId = Guid.NewGuid();
+        }
+
+        correlationContext.SetCorrelationId(correlationId);
+
+        context.Response.OnStarting(() =>
+        {
+            if (!context.Response.Headers.ContainsKey(CorrelationIdHeaderName))
+            {
+                context.Response.Headers.Append(CorrelationIdHeaderName, correlationId.ToString());
+            }
+            return Task.CompletedTask;
+        });
+
+        await _next(context);
+    }
+}
