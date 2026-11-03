@@ -76,8 +76,12 @@ namespace Ecommerce.Pedido.Api.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<Guid>("CorrelationId")
+                        .HasColumnType("char(36)");
+
                     b.Property<string>("Error")
-                        .HasColumnType("longtext");
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
 
                     b.Property<DateTime>("OccurredOnUtc")
                         .HasColumnType("datetime(6)");
@@ -87,11 +91,12 @@ namespace Ecommerce.Pedido.Api.Migrations
 
                     b.Property<string>("Type")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
 
                     b.HasKey("Id");
 
-                    b.ToTable("OutboxMessages");
+                    b.ToTable("OutboxMessages", (string)null);
                 });
 
             modelBuilder.Entity("Ecommerce.Pedido.Api.Domain.Entity.Pedido", b =>

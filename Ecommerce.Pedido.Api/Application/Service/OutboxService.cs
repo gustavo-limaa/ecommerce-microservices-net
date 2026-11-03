@@ -1,4 +1,5 @@
 ﻿using Ecommerce.Pedido.Api.Domain.Entity;
+using Ecommerce.Pedido.Api.Domain.GlobalErros.Middleware;
 using Ecommerce.Pedido.Api.Domain.Interface;
 using Ecommerce.Pedido.Api.Infrastructure.Data;
 using System.Text.Json;
@@ -8,10 +9,12 @@ namespace Ecommerce.Pedido.Api.Application.Service
     public class OutboxService : IOutboxService
     {
         private readonly AppDbContext _dbContext;
+        private readonly ICorrelationIdContext _correlationId;
 
         public OutboxService(AppDbContext dbContext)
         {
             _dbContext = dbContext;
+            _correlationId = new CorrelationIdContext();
         }
 
         public async Task SalvarComOutboxAsync<TEntidade, TEvento>(
@@ -22,8 +25,7 @@ namespace Ecommerce.Pedido.Api.Application.Service
             where TEvento : class
         {
             var jsonContent = JsonSerializer.Serialize(evento);
-            var outboxMessage = new OutboxMessage(typeof(TEvento).Name, jsonContent);
-
+            var outboxMessage = new OutboxMessage(typeof(TEvento).Name, jsonContent, _correlationId.CorrelationId);
             using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
             try
             {

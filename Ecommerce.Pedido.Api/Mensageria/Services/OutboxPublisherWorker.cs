@@ -11,6 +11,7 @@ namespace Ecommerce.Pedido.Api.BackgroundServices;
 public class OutboxPublisherWorker : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
+
     private readonly ILogger<OutboxPublisherWorker> _logger;
 
     public OutboxPublisherWorker(IServiceProvider serviceProvider, ILogger<OutboxPublisherWorker> logger)
@@ -69,7 +70,7 @@ public class OutboxPublisherWorker : BackgroundService
                     if (evento != null)
                     {
                         // 3. Publica no RabbitMQ
-                        await eventProcessor.PublicarEventoAsync(evento, "pedido-criado-queue", cancellationToken);
+                        await eventProcessor.PublicarEventoAsync(evento, "pedido-criado-queue", cancellationToken, mensagem.CorrelationId);
                     }
                 }
 

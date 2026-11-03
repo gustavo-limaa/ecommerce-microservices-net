@@ -20,6 +20,9 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 var app = builder.Build();
 
 app.MapAuthEndpoints();
+using var scope = app.Services.CreateScope();
+var context = scope.ServiceProvider.GetRequiredService<UsuarioDbContext>();
+context.Database.Migrate();
 
 app.Run();
 

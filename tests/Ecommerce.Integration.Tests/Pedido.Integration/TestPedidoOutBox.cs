@@ -64,7 +64,8 @@ public class TestPedidoOutBox : PedidoTestBase
             "PedidoCriado",
             "{}",
             DateTime.UtcNow.AddDays(-10),
-            DateTime.UtcNow.AddDays(-8) // Processada há mais de 7 dias -> DEVE SER REMOVIDA
+            DateTime.UtcNow.AddDays(-8), // Processada há mais de 7 dias -> DEVE SER REMOVIDA
+            Guid.NewGuid()
         );
 
         var mensagemRecenteProcessada = new OutboxMessage(
@@ -72,7 +73,9 @@ public class TestPedidoOutBox : PedidoTestBase
             "Teste",
             "{}",
             DateTime.UtcNow.AddHours(-1),
-            DateTime.UtcNow.AddMinutes(-30)
+            DateTime.UtcNow.AddMinutes(-30),
+            Guid.NewGuid()
+
         );
 
         dbContext.OutboxMessages.AddRange(mensagemAntiga, mensagemRecenteProcessada);
@@ -108,7 +111,8 @@ public class TestPedidoOutBox : PedidoTestBase
             "PedidoCriado",
             "{}",
             DateTime.UtcNow.AddDays(-10),
-            null // Não processada
+            null, // Não processada
+            Guid.NewGuid()
         );
         dbContext.OutboxMessages.Add(mensagemNaoProcessada);
         await dbContext.SaveChangesAsync();
@@ -150,7 +154,8 @@ public class TestPedidoOutBox : PedidoTestBase
             "PedidoCriado",
             "{}",
             DateTime.UtcNow.AddDays(-10),
-            null
+            null,
+            Guid.NewGuid()
         );
 
         // 2. Mensagem recente processada (NÃO PODE SER APAGADA, pois é recente < 7 dias)
@@ -159,7 +164,9 @@ public class TestPedidoOutBox : PedidoTestBase
             "PedidoCriado",
             "{}",
             DateTime.UtcNow.AddHours(-1),
-            DateTime.UtcNow.AddMinutes(-30)
+            DateTime.UtcNow.AddMinutes(-30),
+            Guid.NewGuid()
+
         );
 
         // 3. Mensagem antiga processada (ESTA SIM DEVE SER APAGADA)
@@ -168,7 +175,8 @@ public class TestPedidoOutBox : PedidoTestBase
             "PedidoCriado",
             "{}",
             DateTime.UtcNow.AddDays(-10),
-            DateTime.UtcNow.AddDays(-8)
+            DateTime.UtcNow.AddDays(-8),
+            Guid.NewGuid()
         );
 
         dbContext.OutboxMessages.AddRange(mensagemPendenteAntiga, mensagemRecenteProcessada, mensagemAntigaProcessada);

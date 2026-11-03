@@ -26,19 +26,21 @@ public class RabbitMqEventProcessorTest : PedidoTestBase
             .Setup(x => x.PublicarEventoAsync(
                 It.IsAny<PedidoCriadoEvento>(),
                 It.IsAny<string>(),
-                It.IsAny<CancellationToken>()))
+                It.IsAny<CancellationToken>(),
+                It.IsAny<Guid>()))
             .Returns(Task.CompletedTask);
 
         var evento = new PedidoCriadoEvento(Guid.NewGuid(), Guid.NewGuid(), 150.00m, DateTime.Now);
 
         // Act
-        await eventProcessor.PublicarEventoAsync(evento, "testequeue", CancellationToken.None);
+        await eventProcessor.PublicarEventoAsync(evento, "testequeue", CancellationToken.None, Guid.NewGuid());
 
         // Assert
         eventProcessorMock.Verify(x => x.PublicarEventoAsync(
             It.IsAny<PedidoCriadoEvento>(),
             "testequeue",
-            It.IsAny<CancellationToken>()),
+            It.IsAny<CancellationToken>(),
+            It.IsAny<Guid>()),
             Times.Once);
     }
 
@@ -54,13 +56,14 @@ public class RabbitMqEventProcessorTest : PedidoTestBase
             .Setup(x => x.PublicarEventoAsync(
                 It.IsAny<PedidoCriadoEvento>(),
                 It.IsAny<string>(),
-                It.IsAny<CancellationToken>()))
+                It.IsAny<CancellationToken>(),
+                It.IsAny<Guid>()))
             .ThrowsAsync(new InvalidOperationException("Falha ao conectar com o broker do RabbitMQ."));
 
         var evento = new PedidoCriadoEvento(Guid.NewGuid(), Guid.NewGuid(), 100m, DateTime.Now);
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            repo.PublicarEventoAsync(evento, "testequeue", CancellationToken.None));
+            repo.PublicarEventoAsync(evento, "testequeue", CancellationToken.None, Guid.NewGuid()));
     }
 }
