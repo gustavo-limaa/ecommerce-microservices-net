@@ -4,6 +4,7 @@ using Ecommerce.Auth.Api.Entities;
 using Ecommerce.Auth.Api.Entities.Enums;
 using Ecommerce.Auth.Api.Entities.ValueObjects;
 using Ecommerce.Auth.Api.Service;
+using Microsoft.AspNetCore.Authorization; // 🎯 Necessário para o [Authorize]
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,30 +19,65 @@ public static class AuthEndpoints
         authGroup.MapPost("/registrar", Registrar);
         authGroup.MapPost("/login", Login);
 
+        authGroup.MapPost("/registrar-admin", RegistrarAdmin)
+                 .RequireAuthorization();
+
         return app;
     }
 
     private static async Task<IResult> Registrar(
-    [FromBody] RegistroUsuarioDto dto,
-    [FromServices] UsuarioDbContext context)
+        [FromBody] RegistroUsuarioDto dto,
+        [FromServices] UsuarioDbContext context)
     {
         var (email, erroEmail) = Email.Criar(dto.Email);
         if (email is null)
             return Results.BadRequest(new { mensagem = erroEmail });
+
         if (string.IsNullOrWhiteSpace(dto.Senha) || dto.Senha.Length < 6)
             return Results.BadRequest(new { mensagem = "A senha deve ter pelo menos 6 caracteres." });
+
         if (string.IsNullOrWhiteSpace(dto.Nome))
             return Results.BadRequest(new { mensagem = "O nome é obrigatório." });
-        if (string.IsNullOrWhiteSpace(dto.Perfil))
-            return Results.BadRequest(new { mensagem = "O perfil é obrigatório." });
-        if (!Enum.TryParse<PerfilUsuario>(dto.Perfil, true, out var perfilEnum))
-            return Results.BadRequest(new { mensagem = "Perfil inválido. Use 'Cliente' ou 'Admin'." });
-        if (string.IsNullOrWhiteSpace(dto.Senha))
-            return Results.BadRequest(new { mensagem = "A senha é obrigatória." });
-        // Verifica se já existe um usuário cadastrado com o mesmo e-mail
+
         var emailExiste = await context.Usuarios.AnyAsync(u => u.Email.Valor == email.Valor);
         if (emailExiste)
             return Results.Conflict(new { mensagem = "Este e-mail já está em uso." });
+
+        string senhaHash = BCrypt.Net.BCrypt.HashPassword(dto.Senha);
+
+        var usuario = new Usuario(dto.Nome, email, senhaHash, PerfilUsuario.Cliente);
+
+        context.Usuarios.Add(usuario);
+        await context.SaveChangesAsync();
+
+        return Results.Created($"/api/usuarios/{usuario.Id}", new
+        {
+            id = usuario.Id,
+            nome = usuario.Nome,
+            email = usuario.Email.Valor,
+            perfil = usuario.Perfil.ToString()
+        });
+    }
+
+    [Authorize(Roles = "Admin")]
+    private static async Task<IResult> RegistrarAdmin(
+        [FromBody] RegistroUsuarioDto dto,
+        [FromServices] UsuarioDbContext context)
+    {
+        var (email, erroEmail) = Email.Criar(dto.Email);
+        if (email is null) return Results.BadRequest(new { mensagem = erroEmail });
+
+        if (string.IsNullOrWhiteSpace(dto.Senha) || dto.Senha.Length < 6)
+            return Results.BadRequest(new { mensagem = "A senha deve ter pelo menos 6 caracteres." });
+
+        if (string.IsNullOrWhiteSpace(dto.Nome))
+            return Results.BadRequest(new { mensagem = "O nome é obrigatório." });
+
+        if (!Enum.TryParse<PerfilUsuario>(dto.Perfil, true, out var perfilEnum))
+            return Results.BadRequest(new { mensagem = "Perfil inválido. Use 'Cliente', 'Vendedor' ou 'Admin'." });
+
+        var emailExiste = await context.Usuarios.AnyAsync(u => u.Email.Valor == email.Valor);
+        if (emailExiste) return Results.Conflict(new { mensagem = "Este e-mail já está em uso." });
 
         string senhaHash = BCrypt.Net.BCrypt.HashPassword(dto.Senha);
         var usuario = new Usuario(dto.Nome, email, senhaHash, perfilEnum);
@@ -58,7 +94,6 @@ public static class AuthEndpoints
         });
     }
 
-    // Exemplo no Login:
     private static async Task<IResult> Login(
         [FromBody] LoginDto dto,
         [FromServices] UsuarioDbContext context,
