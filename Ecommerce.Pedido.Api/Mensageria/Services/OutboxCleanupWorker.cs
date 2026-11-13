@@ -22,18 +22,29 @@ public class OutboxCleanupWorker : BackgroundService
     {
         _logger.LogInformation("OutboxCleanupWorker iniciado.");
 
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            try
-            {
-                await LimparMensagensProcessadasAntigasAsync(stoppingToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Erro ao executar a limpeza da tabela OutboxMessages.");
-            }
+        await Task.Yield(); // Garante que o método seja assíncrono
 
-            await Task.Delay(_periodo, stoppingToken);
+        try
+        {
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                // 3. Try interno (o teu código original!): Lida com erros do banco de dados
+                try
+                {
+                    await LimparMensagensProcessadasAntigasAsync(stoppingToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Erro ao executar a limpeza da tabela OutboxMessages.");
+                }
+
+                await Task.Delay(_periodo, stoppingToken);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // A aplicação está a ser encerrada, o Task.Delay foi cancelado graciosamente.
+            _logger.LogInformation("Worker de limpeza do Outbox desligado com sucesso.");
         }
     }
 

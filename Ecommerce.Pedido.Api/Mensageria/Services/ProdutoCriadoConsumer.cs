@@ -27,74 +27,81 @@ public class ProdutoCriadoConsumer : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var factory = new ConnectionFactory
+        // 🎯 1. Liberta o arranque da API (impede que o Kestrel trave se o RabbitMQ demorar)
+        await Task.Yield();
+
+        try
         {
-            HostName = _settings.Host,
-            Port = _settings.Port,
-            UserName = _settings.Username,
-            Password = _settings.Password
-        };
-
-        var connection = await factory.CreateConnectionAsync(stoppingToken);
-        var channel = await connection.CreateChannelAsync(cancellationToken: stoppingToken);
-
-        const string queueName = "produto-criado-queue";
-
-        await channel.QueueDeclareAsync(
-            queue: queueName,
-            durable: true,
-            exclusive: false,
-            autoDelete: false,
-            arguments: null,
-            cancellationToken: stoppingToken
-        );
-
-        var consumer = new AsyncEventingBasicConsumer(channel);
-
-        consumer.ReceivedAsync += async (model, ea) =>
-        {
-            try
+            var factory = new ConnectionFactory
             {
-                var body = ea.Body.ToArray();
-                var message = Encoding.UTF8.GetString(body);
-                var evento = JsonSerializer.Deserialize<ProdutoCriadoEvent>(message);
+                HostName = _settings.Host,
+                Port = _settings.Port,
+                UserName = _settings.Username,
+                Password = _settings.Password
+            };
 
-                if (evento != null)
+            var connection = await factory.CreateConnectionAsync(stoppingToken);
+            var channel = await connection.CreateChannelAsync(cancellationToken: stoppingToken);
+
+            const string queueName = "produto-criado-queue";
+
+            await RabbitMqTopologyBuilder.DeclareQueueWithDlqAsync(channel, queueName, stoppingToken);
+
+            var consumer = new AsyncEventingBasicConsumer(channel);
+
+            consumer.ReceivedAsync += async (model, ea) =>
+            {
+                try
                 {
-                    _logger.LogInformation(" [x] Produto Recebido no Pedido: {Nome} - Preço: {Preco}", evento.Nome, evento.Preco);
+                    var body = ea.Body.ToArray();
+                    var message = Encoding.UTF8.GetString(body);
+                    var evento = JsonSerializer.Deserialize<ProdutoCriadoEvent>(message);
 
-                    using var scope = _serviceProvider.CreateScope();
-                    var repo = scope.ServiceProvider.GetRequiredService<IProdutoSincronizadoRepository>();
+                    if (evento != null)
+                    {
+                        _logger.LogInformation(" [x] Produto Recebido no Pedido: {Nome} - Preço: {Preco}", evento.Nome, evento.Preco);
 
-                    var produto = new ProdutoSincronizado(
-                    evento.Id,
-                    evento.Nome,
-                    evento.Preco,
-                    evento.Estoque,
-                        ativo: true
-                    );
+                        using var scope = _serviceProvider.CreateScope();
+                        var repo = scope.ServiceProvider.GetRequiredService<IProdutoSincronizadoRepository>();
 
-                    await repo.SalvarOuAtualizarAsync(produto);
+                        var produto = new ProdutoSincronizado(
+                        evento.Id,
+                        evento.Nome,
+                        evento.Preco,
+                        evento.Estoque,
+                            ativo: true
+                        );
+
+                        await repo.SalvarOuAtualizarAsync(produto);
+                    }
+
+                    // Sucesso: Confirma a mensagem (Ack)
+                    await channel.BasicAckAsync(deliveryTag: ea.DeliveryTag, multiple: false, cancellationToken: stoppingToken);
                 }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Erro ao processar mensagem da fila {Queue}. Rejeitando e enviando para DLQ...", queueName);
 
-                await channel.BasicAckAsync(deliveryTag: ea.DeliveryTag, multiple: false, cancellationToken: stoppingToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Erro ao processar mensagem da fila {Queue}", queueName);
-            }
-        };
+                    // 🎯 3. O NACK: Rejeita a mensagem. Como o requeue é false, ela vai para a DLQ!
+                    await channel.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: false, cancellationToken: stoppingToken);
+                }
+            };
 
-        await channel.BasicConsumeAsync(
-            queue: queueName,
-            autoAck: false,
-            consumer: consumer,
-            cancellationToken: stoppingToken
-        );
+            await channel.BasicConsumeAsync(
+                queue: queueName,
+                autoAck: false,
+                consumer: consumer,
+                cancellationToken: stoppingToken
+            );
 
-        _logger.LogInformation(" [*] Aguardando mensagens na fila: {Queue}", queueName);
+            _logger.LogInformation(" [*] Aguardando mensagens na fila: {Queue}", queueName);
 
-        // Mantém o worker escutando até a aplicação ser encerrada
-        await Task.Delay(Timeout.Infinite, stoppingToken);
+            // Mantém o worker escutando até a aplicação ser encerrada
+            await Task.Delay(Timeout.Infinite, stoppingToken);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Worker ProdutoCriadoConsumer foi encerrado.");
+        }
     }
 }
