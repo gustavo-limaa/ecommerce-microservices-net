@@ -78,7 +78,7 @@ public class Worker(
                             var resultadoPagamento = await pagamentoService.ProcessarPagamento(pedidoEvento);
 
                             // 3. Marca como processado na memória para blindar contra duplicidade no futuro
-                            pagamentoService.MarcarComoProcessado(pedidoEvento.PedidoId);
+                            await pagamentoService.MarcarComoProcessadoAsync(pedidoEvento.PedidoId);
 
                             // 4. Publica a resposta
                             var respostaBody = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(resultadoPagamento));

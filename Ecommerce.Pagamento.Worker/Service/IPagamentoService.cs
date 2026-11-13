@@ -12,6 +12,6 @@ namespace Ecommerce.Pagamento.Worker.Service
 
         public Task<bool> PagamentoJaFoiProcessadoAsync(Guid pedidoId);
 
-        public void MarcarComoProcessado(Guid pedidoId);
+        public Task MarcarComoProcessadoAsync(Guid pedidoId);
     }
 }

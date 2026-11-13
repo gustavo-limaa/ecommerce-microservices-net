@@ -30,14 +30,8 @@ public class RabbitMqEventProcessor : IEventProcessor
         using var connection = await factory.CreateConnectionAsync(cancellationToken);
         using var channel = await connection.CreateChannelAsync(cancellationToken: cancellationToken);
 
-        await channel.QueueDeclareAsync(
-            queue: queueName,
-            durable: true,
-            exclusive: false,
-            autoDelete: false,
-            arguments: null,
-            cancellationToken: cancellationToken
-        );
+        // 🎯 APAGÁMOS o QueueDeclareAsync antigo e COLOCÁMOS o Builder com a DLQ:
+        await RabbitMqTopologyBuilder.DeclareQueueWithDlqAsync(channel, queueName, cancellationToken);
 
         var jsonMessage = JsonSerializer.Serialize(evento);
         var body = Encoding.UTF8.GetBytes(jsonMessage);
