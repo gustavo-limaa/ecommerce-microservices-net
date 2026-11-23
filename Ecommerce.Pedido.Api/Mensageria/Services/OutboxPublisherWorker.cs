@@ -2,11 +2,10 @@
 using Ecommerce.Pedido.Api.Infrastructure;
 using Ecommerce.Pedido.Api.Infrastructure.Data;
 using Ecommerce.Pedido.Api.Mensageria.Events;
-using Ecommerce.Pedido.Api.Mensageria.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
-namespace Ecommerce.Pedido.Api.BackgroundServices;
+namespace Ecommerce.Pedido.Api.Mensageria.Services;
 
 public class OutboxPublisherWorker : BackgroundService
 {

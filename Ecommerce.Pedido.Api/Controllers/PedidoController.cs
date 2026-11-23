@@ -3,6 +3,7 @@ using Ecommerce.Pedido.Api.Application.Dtos.Responses;
 using Ecommerce.Pedido.Api.Application.Service;
 using Ecommerce.Pedido.Api.Domain.Common;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Ecommerce.Pedido.Api.Controllers;
 
@@ -11,10 +12,12 @@ namespace Ecommerce.Pedido.Api.Controllers;
 public class PedidosController : ControllerBase
 {
     private readonly ServicePedido _pedidoService;
+    private readonly IMemoryCache _memoryCache;
 
-    public PedidosController(ServicePedido pedidoService)
+    public PedidosController(ServicePedido pedidoService, IMemoryCache memoryCache)
     {
         _pedidoService = pedidoService;
+        _memoryCache = memoryCache;
     }
 
     [HttpPost]
@@ -42,7 +45,12 @@ public class PedidosController : ControllerBase
         [FromQuery] int tamanhoPagina = 10,
         CancellationToken cancellationToken = default)
     {
-        var response = await _pedidoService.ObterPedidosComFiltroAsync(status, pagina, tamanhoPagina, cancellationToken);
+        var cacheKey = $"pedidos:status:{status}:pagina:{pagina}:tamanhoPagina:{tamanhoPagina}";
+        var response = await _memoryCache.GetOrCreateAsync(cacheKey, async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30);
+            return await _pedidoService.ObterPedidosComFiltroAsync(status, pagina, tamanhoPagina, cancellationToken);
+        });
         return Ok(response);
     }
 

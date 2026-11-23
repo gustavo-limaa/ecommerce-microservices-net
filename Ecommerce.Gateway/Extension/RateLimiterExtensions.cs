@@ -20,7 +20,7 @@ public static class RateLimiterExtensions
                     partitionKey: clientIp,
                     factory: _ => new FixedWindowRateLimiterOptions
                     {
-                        PermitLimit = 5,                 // Baixamos para 5 para você ver o bloqueio mais rápido!
+                        PermitLimit = 20,                 // Baixamos para 5 para você ver o bloqueio mais rápido!
                         Window = TimeSpan.FromSeconds(10),
                         QueueLimit = 0
                     });

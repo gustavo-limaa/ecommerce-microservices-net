@@ -1,5 +1,4 @@
 ﻿using Ecommerce.Pedido.Api.Application.Service;
-using Ecommerce.Pedido.Api.BackgroundServices;
 using Ecommerce.Pedido.Api.Domain.GlobalErros.Middleware;
 using Ecommerce.Pedido.Api.Domain.Interface;
 using Ecommerce.Pedido.Api.Infrastructure.Data;

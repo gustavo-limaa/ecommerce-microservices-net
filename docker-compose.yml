@@ -48,8 +48,10 @@ services:
       - RabbitMqSettings__Username=${RABBITMQ_USER}
       - RabbitMqSettings__Password=${RABBITMQ_PASS}
     depends_on:
-      - mysql
-      - rabbitmq
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     networks:
       - ecommerce-network
 
@@ -58,13 +60,18 @@ services:
       context: .
       dockerfile: Ecommerce.Pagamento.Worker/Dockerfile
     container_name: ecommerce-pagamento-worker
+    ports:
+      - "5004:5004" 
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=ecommerce_payment_db;Uid=root;Pwd=${MYSQL_ROOT_PASS};
       - RabbitMqSettings__Host=rabbitmq
       - RabbitMqSettings__Port=5672
       - RabbitMqSettings__Username=${RABBITMQ_USER}
       - RabbitMqSettings__Password=${RABBITMQ_PASS}
     depends_on:
+      mysql:
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
     networks:
@@ -80,8 +87,15 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=Ecommerce_Catalogo_DB;Uid=root;Pwd=${MYSQL_ROOT_PASS};
+      - RabbitMqSettings__Host=rabbitmq
+      - RabbitMqSettings__Port=5672
+      - RabbitMqSettings__Username=${RABBITMQ_USER}
+      - RabbitMqSettings__Password=${RABBITMQ_PASS}
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     networks:
       - ecommerce-network
       
@@ -95,6 +109,10 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - JwtSettings__Secret=${JWT_SECRET}
+    depends_on:
+      - ecommerce.auth.api
+      - catalogo.api
+      - pedido.api
     networks:
       - ecommerce-network
 

@@ -1,12 +1,12 @@
 using Ecommerce.Pedido.Api;
 using Ecommerce.Pedido.Api.Domain.GlobalErros;
+using Ecommerce.Pedido.Api.Domain.GlobalErros.Middleware;
 using Ecommerce.Pedido.Api.Infrastructure.Data;
+using Ecommerce.Pedido.Api.Mensageria;
 using Ecommerce.Pedido.Api.Mensageria.Services;
 using FluentValidation;
-using Microsoft.EntityFrameworkCore;
-
 using FluentValidation.AspNetCore;
-using Ecommerce.Pedido.Api.Domain.GlobalErros.Middleware;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 if (builder.Environment.IsEnvironment("Testing"))
@@ -23,6 +23,8 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddAuthentication();
+builder.Services.AddAuthorization();
 
 builder.Services.AddHostedService<ProdutoCriadoConsumer>();
 
@@ -33,7 +35,23 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 30))));
 
+builder.Services.AddHealthChecks()
+    .AddMySql(connectionString)
+    .AddCheck<RabbitMqHealthCheck>("RabbitMQ");
+builder.Services.AddMemoryCache();
+
 var app = builder.Build();
+
+app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = _ => false
+});
+
+app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    ResponseWriter = HealthChecks.UI.Client.UIResponseWriter.WriteHealthCheckUIResponse
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseExceptionHandler();
