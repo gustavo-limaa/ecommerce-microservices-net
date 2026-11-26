@@ -1,11 +1,18 @@
-﻿using FluentAssertions;
+﻿using Ecommerce.Performance.Tests.PerformanceAuth;
+using FluentAssertions;
+using Microsoft.Extensions.Configuration;
+using MySqlConnector;
 using System.Diagnostics;
 using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Text.Json;
 using Xunit.Abstractions;
 
 public abstract class PerformanceTestBase : IDisposable
 {
     protected readonly HttpClient Client;
+    private readonly IConfiguration _configuration;
     protected readonly ITestOutputHelper Output;
 
     protected PerformanceTestBase(Uri gatewayBaseUri, ITestOutputHelper output)
@@ -15,6 +22,11 @@ public abstract class PerformanceTestBase : IDisposable
         {
             BaseAddress = gatewayBaseUri
         };
+
+        _configuration = new ConfigurationBuilder()
+           .AddUserSecrets<PerformancePost_AUTH>(optional: true)
+           .AddEnvironmentVariables()
+           .Build();
     }
 
     protected async Task MedirEndpointGetAsync(
@@ -115,5 +127,85 @@ public abstract class PerformanceTestBase : IDisposable
             rota,
             sw.Elapsed.TotalMilliseconds,
             response);
+    }
+
+    protected async Task AutenticarClienteAsync()
+    {
+        var email = _configuration["PERF_TEST_EMAIL"];
+        var senha = _configuration["PERF_TEST_PASSWORD"]; ; // use a senha esperada pela sua validação de senha
+
+        var loginDto = new { Email = email, Senha = senha };
+        var loginResponse = await Client.PostAsJsonAsync("/api/auth/login", loginDto);
+
+        if (!loginResponse.IsSuccessStatusCode)
+        {
+            var registroDto = new
+            {
+                Nome = "Zander Gustavo",
+                Email = email,
+                Senha = senha
+            };
+
+            var registroResponse = await Client.PostAsJsonAsync("/api/auth/registrar", registroDto);
+            registroResponse.EnsureSuccessStatusCode();
+
+            // Se o registro cria como 'Cliente', garanta o perfil 'Admin' antes do login final
+            await PromoverUsuarioParaAdminAsync(email);
+
+            loginResponse = await Client.PostAsJsonAsync("/api/auth/login", loginDto);
+        }
+
+        loginResponse.EnsureSuccessStatusCode();
+
+        var body = await loginResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var token = body.TryGetProperty("token", out var t) ? t.GetString()
+                  : body.TryGetProperty("accessToken", out var at) ? at.GetString()
+                  : null;
+
+        token.Should().NotBeNullOrWhiteSpace();
+
+        Client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", token);
+    }
+
+    public async Task PromoverUsuarioParaAdminAsync(string? email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            throw new ArgumentException("E-mail do usuário de teste não configurado.", nameof(email));
+
+        var connectionString = _configuration["AuthConnection"]
+            ?? throw new InvalidOperationException("AuthConnection não configurada.");
+
+        await using var connection = new MySqlConnector.MySqlConnection(connectionString);
+        await connection.OpenAsync();
+
+        const string sql = """
+        UPDATE Usuarios
+        SET Perfil = 'Admin'
+        WHERE Email = @Email;
+        """;
+
+        await using var cmd = new MySqlConnector.MySqlCommand(sql, connection);
+        cmd.Parameters.AddWithValue("@Email", email);
+
+        var afetadas = await cmd.ExecuteNonQueryAsync();
+        afetadas.Should().BeGreaterThan(0, "o usuário recém-registrado deve existir na tabela Usuarios antes de ser promovido");
+    }
+
+    public async Task PromoverParaAdminAsync(string email)
+    {
+        var connectionString = _configuration["ConnectionStrings:AuthConnection"]
+            ?? throw new InvalidOperationException("ConnectionStrings:AuthConnection não configurada.");
+
+        await using var connection = new MySqlConnection(connectionString);
+        await connection.OpenAsync();
+
+        const string sql = "UPDATE Usuarios SET Perfil = 'Admin' WHERE Email = @Email;";
+        await using var command = new MySqlCommand(sql, connection);
+        command.Parameters.AddWithValue("@Email", email);
+
+        var afetadas = await command.ExecuteNonQueryAsync();
+        if (afetadas == 0)
+            throw new InvalidOperationException($"Usuário {email} não encontrado para promover a Admin.");
     }
 }

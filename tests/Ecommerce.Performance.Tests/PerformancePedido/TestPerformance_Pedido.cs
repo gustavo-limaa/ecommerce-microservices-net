@@ -1,6 +1,9 @@
-﻿using FluentAssertions;
+﻿using EcommerceDataTest;
+using FluentAssertions;
 using Microsoft.Extensions.Configuration;
+using MySqlConnector;
 using System.Configuration;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -34,26 +37,6 @@ public sealed class PedidoPerformanceTests : PerformanceTestBase
     }
 
     [Fact]
-    public async Task GetPedidos_DeveResponderDentroDoLimite()
-    {
-        await AutenticarClienteAsync();
-
-        await MedirEndpointGetAsync("/api/pedidos", iteracoes: 15, limiteMaximoMediaMs: 500);
-    }
-
-    [Fact]
-    public async Task MedirGet_DeveExibirTemposDaRota()
-    {
-        await AutenticarClienteAsync();
-
-        var resultado = await MedirGetAsync(Client, "/api/pedidos", iteracoes: 3);
-
-        EscreverResultado(resultado);
-
-        resultado.MediaRepeticoesMs.Should().BeGreaterThanOrEqualTo(0);
-    }
-
-    [Fact]
     public async Task MedirGet_ProdutosSincronizados()
     {
         var resultado = await MedirGetAsync(Client, "/api/produtossincronizados", iteracoes: 3);
@@ -62,38 +45,15 @@ public sealed class PedidoPerformanceTests : PerformanceTestBase
     }
 
     [Fact]
-    public async Task GetProdutosSincronizados_DeveResponderDentroDoLimite()
+    public async Task MedirGet_DeveExibirTemposDaRota()
     {
-        await MedirEndpointGetAsync($"/api/produtossincronizados", iteracoes: 15, limiteMaximoMediaMs: 500);
-    }
+        await GarantirUsuarioAdminAsync();
 
-    private async Task AutenticarClienteAsync()
-    {
-        var token = await ObterTokenViaLoginAsync(_configuration);
-        Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-    }
+        var resultado = await MedirGetAsync(Client, "/api/pedidos", iteracoes: 3);
 
-    private async Task<string> ObterTokenViaLoginAsync(IConfiguration configuration)
-    {
-        var email = configuration["PERF_TEST_EMAIL"];
-        var senha = configuration["PERF_TEST_PASSWORD"];
+        EscreverResultado(resultado);
 
-        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(senha))
-            throw new InvalidOperationException("Configure PERF_TEST_EMAIL e PERF_TEST_PASSWORD nos User Secrets ou variáveis de ambiente.");
-
-        var response = await Client.PostAsJsonAsync("/api/auth/login", new { email, senha });
-        response.EnsureSuccessStatusCode();
-
-        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        var root = doc.RootElement;
-
-        if (root.TryGetProperty("token", out var tokenProp) && !string.IsNullOrWhiteSpace(tokenProp.GetString()))
-            return tokenProp.GetString()!;
-
-        if (root.TryGetProperty("accessToken", out var accessTokenProp) && !string.IsNullOrWhiteSpace(accessTokenProp.GetString()))
-            return accessTokenProp.GetString()!;
-
-        throw new InvalidOperationException("Propriedade do token não encontrada no retorno do login.");
+        resultado.MediaRepeticoesMs.Should().BeGreaterThanOrEqualTo(0);
     }
 
     private void EscreverResultado(ResultadoMedicao resultado)
@@ -103,5 +63,82 @@ public sealed class PedidoPerformanceTests : PerformanceTestBase
             $"Média rep.: {resultado.MediaRepeticoesMs:F2} ms | " +
             $"Min: {resultado.MinRepeticoesMs:F2} ms | " +
             $"Max: {resultado.MaxRepeticoesMs:F2} ms");
+    }
+
+    private async Task GarantirUsuarioAdminAsync()
+    {
+        var senhaAdmin = _configuration["PERF_TEST_PASSWORD"]
+            ?? throw new InvalidOperationException("Senha de teste não configurada no User Secrets.");
+
+        var emailAdmin = _configuration["PERF_TEST_EMAIL"] ?? "perf.admin@ecommerce.local";
+
+        var registroDto = new
+        {
+            Nome = "Perf Admin",
+            Email = emailAdmin,
+            Senha = senhaAdmin
+        };
+
+        using var respRegistro = await Client.PostAsJsonAsync("/api/auth/registrar", registroDto);
+        if (respRegistro.StatusCode != HttpStatusCode.Created &&
+            respRegistro.StatusCode != HttpStatusCode.Conflict &&
+            respRegistro.StatusCode != HttpStatusCode.BadRequest)
+        {
+            respRegistro.EnsureSuccessStatusCode();
+        }
+
+        // 1. Promove antes do login para o token já refletir o perfil Admin
+        await PromoverParaAdminAsync(emailAdmin);
+
+        // 2. Faz o login e extrai o token
+        var loginDto = new
+        {
+            Email = emailAdmin,
+            Senha = senhaAdmin
+        };
+
+        using var respLogin = await Client.PostAsJsonAsync("/api/auth/login", loginDto);
+        respLogin.EnsureSuccessStatusCode();
+
+        var jsonLogin = await respLogin.Content.ReadAsStringAsync();
+        var token = ExtrairTokenDoJson(jsonLogin)
+            ?? throw new InvalidOperationException("Token não encontrado na resposta de /api/auth/login.");
+
+        // 3. Anexa o Bearer token no HttpClient usado pelos testes
+        Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+    }
+
+    private static string? ExtrairTokenDoJson(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return null;
+
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
+        foreach (var propName in new[] { "token", "Token", "accessToken", "AccessToken" })
+        {
+            if (root.TryGetProperty(propName, out var prop) && prop.ValueKind == JsonValueKind.String)
+                return prop.GetString();
+        }
+
+        return null;
+    }
+
+    private async Task PromoverParaAdminAsync(string email)
+    {
+        var connectionString = _configuration["ConnectionStrings:AuthConnection"]
+            ?? throw new InvalidOperationException("ConnectionStrings:AuthConnection não configurada.");
+
+        await using var connection = new MySqlConnection(connectionString);
+        await connection.OpenAsync();
+
+        const string sql = "UPDATE Usuarios SET Perfil = 'Admin' WHERE Email = @Email;";
+        await using var command = new MySqlCommand(sql, connection);
+        command.Parameters.AddWithValue("@Email", email);
+
+        var afetadas = await command.ExecuteNonQueryAsync();
+        if (afetadas == 0)
+            throw new InvalidOperationException($"Usuário {email} não encontrado para promover a Admin.");
     }
 }

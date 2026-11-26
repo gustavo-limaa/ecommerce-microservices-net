@@ -9,10 +9,7 @@ using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
-if (builder.Environment.IsEnvironment("Testing"))
-{
-    builder.Configuration.AddUserSecrets<Program>();
-}
+
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 builder.Services
@@ -28,9 +25,7 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddHostedService<ProdutoCriadoConsumer>();
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? builder.Configuration.GetConnectionString("PedidoTestConnection")
-    ?? "Server=127.0.0.1;Port=3308;Database=ecommerce_pedido_testes_db;Uid=root;Pwd=root;";
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 30))));

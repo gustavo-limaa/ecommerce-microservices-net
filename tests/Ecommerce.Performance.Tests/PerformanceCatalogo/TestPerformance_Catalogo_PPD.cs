@@ -3,6 +3,7 @@ using Ecommerce.Catalogo.Api.Domain.Entity;
 using Ecommerce.Performance.Tests.PerformancePedido;
 using EcommerceDataTest;
 using FluentAssertions;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using MySqlConnector;
 using System;
@@ -34,7 +35,7 @@ public class TestPerformance_Catalogo_PPD : PerformanceTestBase
     [Fact]
     public async Task Patch_Catalogo_produtos_DeveResponderDentroDoLimite()
     {
-        await AutenticarClienteAsync();
+        await GarantirUsuarioAdminAsync();
         Guid? categoriaSetupId = null;
         Guid? produtoCriadoId = null;
 
@@ -111,33 +112,61 @@ public class TestPerformance_Catalogo_PPD : PerformanceTestBase
         }
     }
 
-    private async Task AutenticarClienteAsync()
+    [Fact]
+    public async Task POST_Catalogo_estoque_DeveResponderDentroDoLimite()
     {
-        var token = await ObterTokenViaLoginAsync(_configuration);
-        Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-    }
+        await GarantirUsuarioAdminAsync();
 
-    private async Task<string> ObterTokenViaLoginAsync(IConfiguration configuration)
-    {
-        var email = configuration["PERF_TEST_EMAIL"];
-        var senha = configuration["PERF_TEST_PASSWORD"];
+        Guid? categoriaSetupId = null;
+        Guid? idCriado = null;
 
-        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(senha))
-            throw new InvalidOperationException("Configure PERF_TEST_EMAIL e PERF_TEST_PASSWORD nos User Secrets ou variáveis de ambiente.");
+        try
+        {
+            // 1. Setup fora do Stopwatch: cria uma categoria válida para obter o ID
+            var categoriaDto = DataFactory.CriarCategoriaDTOFaker.Generate();
+            using var respCategoria = await Client.PostAsJsonAsync("/api/categorias", categoriaDto);
+            respCategoria.EnsureSuccessStatusCode();
 
-        var response = await Client.PostAsJsonAsync("/api/auth/login", new { email, senha });
-        response.EnsureSuccessStatusCode();
+            var categoriaJson = await respCategoria.Content.ReadAsStringAsync();
+            categoriaSetupId = ExtrairIdDoJson(categoriaJson);
 
-        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        var root = doc.RootElement;
+            // 2. Monta o produto com o ID da categoria criada e mede só o POST /api/produtos
+            var estoqueDto = DataFactory.CriarProdutoDTOFaker(categoriaSetupId!.Value).Generate();
+            using var content = JsonContent.Create(estoqueDto);
 
-        if (root.TryGetProperty("token", out var tokenProp) && !string.IsNullOrWhiteSpace(tokenProp.GetString()))
-            return tokenProp.GetString()!;
+            var resultado = await MedirChamadaEscritaAsync(Client, HttpMethod.Post, "/api/produtos", content);
+            using var resposta = resultado.Resposta;
 
-        if (root.TryGetProperty("accessToken", out var accessTokenProp) && !string.IsNullOrWhiteSpace(accessTokenProp.GetString()))
-            return accessTokenProp.GetString()!;
+            Output.WriteLine($"[{resultado.MetodoHttp}] {resultado.Rota} -> {resultado.DuracaoMs:F2} ms | Status: {(int)resposta.StatusCode}");
 
-        throw new InvalidOperationException("Propriedade do token não encontrada no retorno do login.");
+            resposta.StatusCode.Should().Be(HttpStatusCode.Created);
+            resultado.DuracaoMs.Should().BeLessThan(800);
+
+            var json = await resposta.Content.ReadAsStringAsync();
+            idCriado = ExtrairIdDoJson(json);
+
+            // 3. Mede só o PATCH /api/produtos/{id}/estoque
+            using var patchContent = JsonContent.Create(new { Quantidade = 10 });
+            var resultadoPatch = await MedirChamadaEscritaAsync(
+                Client,
+                HttpMethod.Patch,
+                $"/api/produtos/{idCriado}/estoque",
+                patchContent);
+
+            using var respostaPatch = resultadoPatch.Resposta;
+            Output.WriteLine($"[{resultadoPatch.MetodoHttp}] {resultadoPatch.Rota} -> {resultadoPatch.DuracaoMs:F2} ms | Status: {(int)respostaPatch.StatusCode}");
+
+            respostaPatch.StatusCode.Should().Be(HttpStatusCode.NoContent);
+            resultadoPatch.DuracaoMs.Should().BeLessThan(800);
+        }
+        finally
+        {
+            if (idCriado.HasValue)
+                await ExecutarDeletePorIdAsync("Produtos", idCriado.Value.ToString());
+
+            if (categoriaSetupId.HasValue)
+                await ExecutarDeletePorIdAsync("Categorias", categoriaSetupId.Value.ToString());
+        }
     }
 
     private Task LimparProdutoIdAsync(string id) => ExecutarDeletePorIdAsync("Produtos", id);
@@ -179,5 +208,82 @@ public class TestPerformance_Catalogo_PPD : PerformanceTestBase
         }
 
         return null;
+    }
+
+    private async Task GarantirUsuarioAdminAsync()
+    {
+        var senhaAdmin = _configuration["PERF_TEST_PASSWORD"]
+            ?? throw new InvalidOperationException("Senha de teste não configurada no User Secrets.");
+
+        var emailAdmin = _configuration["PERF_TEST_EMAIL"] ?? "perf.admin@ecommerce.local";
+
+        var registroDto = new
+        {
+            Nome = "Perf Admin",
+            Email = emailAdmin,
+            Senha = senhaAdmin
+        };
+
+        using var respRegistro = await Client.PostAsJsonAsync("/api/auth/registrar", registroDto);
+        if (respRegistro.StatusCode != HttpStatusCode.Created &&
+            respRegistro.StatusCode != HttpStatusCode.Conflict &&
+            respRegistro.StatusCode != HttpStatusCode.BadRequest)
+        {
+            respRegistro.EnsureSuccessStatusCode();
+        }
+
+        // 1. Promove antes do login para o token já refletir o perfil Admin
+        await PromoverParaAdminAsync(emailAdmin);
+
+        // 2. Faz o login e extrai o token
+        var loginDto = new
+        {
+            Email = emailAdmin,
+            Senha = senhaAdmin
+        };
+
+        using var respLogin = await Client.PostAsJsonAsync("/api/auth/login", loginDto);
+        respLogin.EnsureSuccessStatusCode();
+
+        var jsonLogin = await respLogin.Content.ReadAsStringAsync();
+        var token = ExtrairTokenDoJson(jsonLogin)
+            ?? throw new InvalidOperationException("Token não encontrado na resposta de /api/auth/login.");
+
+        // 3. Anexa o Bearer token no HttpClient usado pelos testes
+        Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+    }
+
+    private static string? ExtrairTokenDoJson(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return null;
+
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
+        foreach (var propName in new[] { "token", "Token", "accessToken", "AccessToken" })
+        {
+            if (root.TryGetProperty(propName, out var prop) && prop.ValueKind == JsonValueKind.String)
+                return prop.GetString();
+        }
+
+        return null;
+    }
+
+    private async Task PromoverParaAdminAsync(string email)
+    {
+        var connectionString = _configuration["ConnectionStrings:AuthConnection"]
+            ?? throw new InvalidOperationException("ConnectionStrings:AuthConnection não configurada.");
+
+        await using var connection = new MySqlConnection(connectionString);
+        await connection.OpenAsync();
+
+        const string sql = "UPDATE Usuarios SET Perfil = 'Admin' WHERE Email = @Email;";
+        await using var command = new MySqlCommand(sql, connection);
+        command.Parameters.AddWithValue("@Email", email);
+
+        var afetadas = await command.ExecuteNonQueryAsync();
+        if (afetadas == 0)
+            throw new InvalidOperationException($"Usuário {email} não encontrado para promover a Admin.");
     }
 }

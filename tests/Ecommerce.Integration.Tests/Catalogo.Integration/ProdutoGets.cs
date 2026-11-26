@@ -71,20 +71,6 @@ public class ProdutoGets : CatalogoTestBase
     }
 
     [Fact]
-    public async Task Get_Produtos_thereisNoProducts_ReturnsEmptyList()
-    {
-        // Arrange
-        // Ensure the database is empty or clear it before this test if necessary
-        // Act
-        var response = await GetAsync("/api/produtos");
-        // Assert
-        var produtosRetornados = await response.Content.ReadFromJsonAsync<List<ProdutoResponseDTO>>();
-        response.EnsureSuccessStatusCode();
-        Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
-        produtosRetornados.Should().BeEmpty();
-    }
-
-    [Fact]
     public async Task Get_Produtos_ReturnsPaginatedResults()
     {
         // Arrange

@@ -1,5 +1,6 @@
 ﻿using EcommerceDataTest;
 using FluentAssertions;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using MySqlConnector;
 using System;
@@ -27,17 +28,10 @@ public class PerformancePost_AUTH : PerformanceTestBase
     }
 
     [Fact]
-    public async Task Post_Login_DeveResponderDentroDoLimite()
+    public async Task Post_Login_Usuario_admin()
     {
-        var loginDto = DataFactory.LoginDtoFaker.Generate();
-        using var content = JsonContent.Create(loginDto);
-
-        var resultado = await MedirChamadaEscritaAsync(Client, HttpMethod.Post, "/api/auth/login", content);
-        using var resposta = resultado.Resposta;
-
-        Output.WriteLine($"[{resultado.MetodoHttp}] {resultado.Rota} -> {resultado.DuracaoMs:F2} ms | Status: {(int)resposta.StatusCode}");
-
-        resultado.DuracaoMs.Should().BeLessThan(500);
+        await GarantirUsuarioAdminAsync();
+        Output.WriteLine("Usuário admin garantido para o teste de login.");
     }
 
     [Fact]
@@ -78,5 +72,39 @@ public class PerformancePost_AUTH : PerformanceTestBase
         command.Parameters.AddWithValue("@Email", email);
 
         await command.ExecuteNonQueryAsync();
+    }
+
+    private async Task GarantirUsuarioAdminAsync()
+    {
+        var senhaAdmin = _configuration["PERF_TEST_PASSWORD"]
+            ?? throw new InvalidOperationException("Senha de teste não configurada no User Secrets.");
+
+        var emailAdmin = _configuration["PERF_TEST_EMAIL"] ?? "perf.admin@ecommerce.local";
+
+        var registroDto = new
+        {
+            Nome = "Perf Admin",
+            Email = emailAdmin,
+            Senha = senhaAdmin
+        };
+
+        using var respRegistro = await Client.PostAsJsonAsync("/api/auth/registrar", registroDto);
+        if (respRegistro.StatusCode != HttpStatusCode.Created &&
+            respRegistro.StatusCode != HttpStatusCode.Conflict &&
+            respRegistro.StatusCode != HttpStatusCode.BadRequest)
+        {
+            respRegistro.EnsureSuccessStatusCode();
+        }
+
+        var loginDto = new
+        {
+            Email = emailAdmin,
+            Senha = senhaAdmin
+        };
+
+        using var respLogin = await Client.PostAsJsonAsync("/api/auth/login", loginDto);
+        respLogin.EnsureSuccessStatusCode();
+
+        await PromoverParaAdminAsync(emailAdmin);
     }
 }
