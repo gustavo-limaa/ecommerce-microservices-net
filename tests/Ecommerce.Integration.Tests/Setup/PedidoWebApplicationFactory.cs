@@ -18,34 +18,33 @@ namespace Ecommerce.Integration.Tests.Setup;
 
 public class PedidoWebApplicationFactory : WebApplicationFactory<IPedidoAssemblyMarker>, IAsyncLifetime
 {
+    private const string TestConnectionString = "Server=127.0.0.1;Port=3308;Database=ecommerce_pedido_testes_db;Uid=test_user;Pwd=455368;";
+
     private DbConnection? _dbConnection;
     private Respawner? _respawner;
-
-    private const string TestConnectionString = "Server=127.0.0.1;Port=3308;Database=ecommerce_pedido_testes_db;Uid=test_user;Pwd=test_password_123;";
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
-
-        // 1. Injeta a string de conexão no builder antes de o Program.cs rodar
         builder.UseSetting("ConnectionStrings:DefaultConnection", TestConnectionString);
 
         builder.ConfigureServices(services =>
         {
-            // 2. Configura a Autenticação de Teste
+            // Autenticação de teste
             services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = "TestScheme";
                 options.DefaultChallengeScheme = "TestScheme";
             })
-            .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>("TestScheme", options => { })
-            .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>("Bearer", options => { });
+            .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>("TestScheme", _ => { })
+            .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>("Bearer", _ => { });
 
-            // 3. Garante o registo do Controller de Pedidos
+            // Garante registro do controller de pedidos
             services.AddControllers()
-        .AddApplicationPart(typeof(Ecommerce.Pedido.Api.Controllers.PedidosController).Assembly)
-        .AddControllersAsServices();
-            // 4. Substitui o DbContext pelo banco de testes
+                .AddApplicationPart(typeof(Ecommerce.Pedido.Api.Controllers.PedidosController).Assembly)
+                .AddControllersAsServices();
+
+            // Substitui o DbContext pelo banco de testes
             var dbContextDescriptor = services.SingleOrDefault(
                 d => d.ServiceType == typeof(DbContextOptions<AppDbContext>));
 
@@ -57,29 +56,28 @@ public class PedidoWebApplicationFactory : WebApplicationFactory<IPedidoAssembly
             services.AddDbContext<AppDbContext>(options =>
                 options.UseMySql(TestConnectionString, new MySqlServerVersion(new Version(8, 0, 30))));
 
-            // 5. 🎯 CORRECÇÃO DO RABBITMQ: Remove o IEventProcessor do PEDIDO (não do Catálogo)
+            // Substitui o IEventProcessor real pelo mock nos testes do Pedido
+            var produtoCriadoConsumerDescriptor = services.SingleOrDefault(
+            d => d.ServiceType == typeof(Microsoft.Extensions.Hosting.IHostedService) &&
+         d.ImplementationType == typeof(ProdutoCriadoConsumer));
+
+            if (produtoCriadoConsumerDescriptor != null)
+            {
+                services.Remove(produtoCriadoConsumerDescriptor);
+            }
             var eventProcessorDescriptor = services.SingleOrDefault(
-                d => d.ServiceType == typeof(Ecommerce.Pedido.Api.Mensageria.Services.IEventProcessor));
+                d => d.ServiceType == typeof(IEventProcessor));
 
             if (eventProcessorDescriptor != null)
             {
                 services.Remove(eventProcessorDescriptor);
             }
 
-            var eventProcessorMock = new Mock<Ecommerce.Pedido.Api.Mensageria.Services.IEventProcessor>();
+            var eventProcessorMock = new Mock<IEventProcessor>();
             services.AddSingleton(eventProcessorMock.Object);
             services.AddSingleton(eventProcessorMock);
 
             services.AddScoped<IProdutoSincronizadoRepository, ProdutoSincronizadoRepository>();
-            // Remove TODOS os registros anteriores do DbContext
-            var descriptors = services.Where(d => d.ServiceType == typeof(DbContextOptions<AppDbContext>)).ToList();
-            foreach (var descriptor in descriptors)
-            {
-                services.Remove(descriptor);
-            }
-
-            services.AddDbContext<AppDbContext>(options =>
-                options.UseMySql(TestConnectionString, new MySqlServerVersion(new Version(8, 0, 30))));
         });
     }
 
@@ -88,10 +86,8 @@ public class PedidoWebApplicationFactory : WebApplicationFactory<IPedidoAssembly
         using var scope = Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        // Executa as migrations na base de testes do Catálogo
         await context.Database.MigrateAsync();
 
-        // Inicializa o Respawner
         _dbConnection = new MySqlConnection(TestConnectionString);
         await _dbConnection.OpenAsync();
 
@@ -116,6 +112,9 @@ public class PedidoWebApplicationFactory : WebApplicationFactory<IPedidoAssembly
         {
             await _dbConnection.CloseAsync();
             await _dbConnection.DisposeAsync();
+            _dbConnection = null;
         }
+
+        await base.DisposeAsync();
     }
 }

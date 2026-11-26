@@ -1,6 +1,7 @@
 ﻿using Ecommerce.Catalogo.Api.Application.DTOs;
 using Ecommerce.Catalogo.Api.Application.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Ecommerce.Catalogo.Api.Controllers;
 
@@ -9,10 +10,12 @@ namespace Ecommerce.Catalogo.Api.Controllers;
 public class ProdutosController : ControllerBase
 {
     private readonly ICatalogoService _catalogoService;
+    private readonly IMemoryCache _memoryCache;
 
-    public ProdutosController(ICatalogoService catalogoService)
+    public ProdutosController(ICatalogoService catalogoService, IMemoryCache memoryCache)
     {
         _catalogoService = catalogoService;
+        _memoryCache = memoryCache;
     }
 
     [HttpGet("{id:guid}")]
@@ -40,7 +43,13 @@ public class ProdutosController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> ObterTodos([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
     {
-        var produtos = await _catalogoService.ObterPaginacaoAsync(pageNumber, pageSize);
+        var cacheKey = $"produtos:p{pageNumber}:s{pageSize}";
+
+        var produtos = await _memoryCache.GetOrCreateAsync(cacheKey, async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30);
+            return await _catalogoService.ObterPaginacaoAsync(pageNumber, pageSize);
+        });
         return Ok(produtos);
     }
 }

@@ -30,14 +30,7 @@ public class RabbitMqEventProcessor : IEventProcessor
         using var channel = await connection.CreateChannelAsync(cancellationToken: cancellationToken);
 
         // Garante que a fila existe antes de publicar
-        await channel.QueueDeclareAsync(
-            queue: queueName,
-            durable: true,
-            exclusive: false,
-            autoDelete: false,
-            arguments: null,
-            cancellationToken: cancellationToken
-        );
+        await RabbitMqTopologyBuilder.DeclareQueueWithDlqAsync(channel, queueName, cancellationToken);
         // 1. Cria as propriedades base
         var properties = new BasicProperties();
 

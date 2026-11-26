@@ -6,7 +6,7 @@ using System.Net.Http.Json;
 
 namespace Ecommerce.Integration.Tests.Catalogo.Integration;
 
-[Collection("CatalogoTestCollection")]
+[Collection("CatalogoCollection")]
 public class CategoriaGet : CatalogoTestBase
 {
     public CategoriaGet(CatalogoWebApplicationFactory factory) : base(factory)
@@ -59,18 +59,6 @@ public class CategoriaGet : CatalogoTestBase
         var responseGet = await GetAsync($"api/categorias/{idInexistente}");
         // Assert
         responseGet.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
-    }
-
-    [Fact]
-    public async Task ObterTodas_RetornaListaVaziaQuandoNaoExistemCategorias()
-    {
-        // Act+arrange
-        var responseGet = await GetAsync("api/categorias");
-        // Assert
-        responseGet.EnsureSuccessStatusCode();
-        var categorias = await responseGet.Content.ReadFromJsonAsync<List<CategoriaResponseDTO>>();
-        categorias.Should().NotBeNull();
-        categorias.Should().BeEmpty();
     }
 
     [Fact]

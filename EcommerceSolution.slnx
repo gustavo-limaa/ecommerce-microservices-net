@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/tests/">
     <Project Path="tests/Ecommerce.Integration.Tests/Ecommerce.Integration.Tests.csproj" />
+    <Project Path="tests/Ecommerce.Performance.Tests/Ecommerce.Performance.Tests.csproj" />
     <Project Path="tests/Ecommerce.Unitario.Tests/Ecommerce.UnitarioTests.csproj" />
     <Project Path="tests/EcommerceDataTest/EcommerceDataTest.csproj" />
   </Folder>

@@ -80,8 +80,8 @@ jobs:
         with:
           name: build-artifacts
 
-      - name: Executar Testes
-        run: dotnet test --no-build --configuration Release --verbosity normal
+      - name: Executar Testes (Unitários e Integração)
+        run: dotnet test --no-build --configuration Release --verbosity normal --filter "FullyQualifiedName!~Ecommerce.Performance.Tests"
         env:
           JwtSettings__Secret: ${{ secrets.JWT_SECRET }}
           ConnectionStrings__DefaultConnection: "Server=localhost;Port=3306;Database=EcommerceDb;Uid=root;Pwd=${{ secrets.MYSQL_ROOT_PASSWORD }};"

@@ -5,7 +5,11 @@ using Ecommerce.Catalogo.Api.Infra.Data;
 using Ecommerce.Catalogo.Api.Infra.Repository;
 using Ecommerce.Catalogo.Api.Mensageria.Services;
 using Ecommerce.Catalogo.Api.Mensageria.Settings;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using HealthChecks.UI.Client;
 using Microsoft.EntityFrameworkCore;
+
+using Ecommerce.Catalogo.Api.Mensageria;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,23 +27,45 @@ builder.Services.AddScoped<IEventProcessor, RabbitMqEventProcessor>();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("A ConnectionString 'DefaultConnection' não foi configurada.");
+
 builder.Services.AddDbContext<CatalogoDbContext>(options =>
     options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 30))));
 // Injeção de Dependências de Negócio
 builder.Services.AddScoped<ICategoriaRepository, CategoriaRepository>();
 builder.Services.AddScoped<IProdutoRepository, ProdutoRepository>();
 builder.Services.AddScoped<ICatalogoService, CatalogoService>();
+builder.Services.AddAuthentication();
+builder.Services.AddAuthorization();
+
+builder.Services.AddHealthChecks()
+    .AddMySql(connectionString)
+    .AddCheck<RabbitMqHealthCheck>("RabbitMQ");
+
+builder.Services.AddMemoryCache();
 
 var app = builder.Build();
+
+app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = _ => false
+});
+
+app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    ResponseWriter = HealthChecks.UI.Client.UIResponseWriter.WriteHealthCheckUIResponse
+});
+
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<CatalogoDbContext>(); // Substitua pelo nome do seu DbContext do Catálogo
     context.Database.Migrate();
 }
+
 // Middlewares
 app.UseExceptionHandler();
 
 app.UseAuthorization();
+app.UseAuthentication();
 app.MapControllers();
 
 app.Run();

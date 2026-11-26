@@ -1,24 +1,32 @@
-﻿using Ecommerce.Pagamento.Worker.Events;
+﻿using Ecommerce.Pagamento.Worker.Data;
+using Ecommerce.Pagamento.Worker.Entity;
+using Ecommerce.Pagamento.Worker.Events;
 using Ecommerce.Pagamento.Worker.Service;
 using Ecommerce.Pagamento.Worker.utility;
 using FluentAssertions;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace Ecommerce.Integration.Tests.Pagamento.Integration;
 
-public class PagamentoServiceTests
+public class PagamentoServiceTests : IDisposable
 {
-    private readonly Mock<IMemoryCache> _cacheMock;
     private readonly Mock<ILogger<PagamentoService>> _loggerMock;
+    private readonly PaymentDbContext _context;
     private readonly PagamentoService _service;
 
     public PagamentoServiceTests()
     {
-        _cacheMock = new Mock<IMemoryCache>();
+        var options = new DbContextOptionsBuilder<PaymentDbContext>()
+        .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+        .Options;
+
+        _context = new PaymentDbContext(options);
         _loggerMock = new Mock<ILogger<PagamentoService>>();
-        _service = new PagamentoService(_loggerMock.Object, _cacheMock.Object);
+
+        // Passa o DbContext real (em memória) para o serviço
+        _service = new PagamentoService(_context, _loggerMock.Object);
     }
 
     [Fact]
@@ -65,16 +73,17 @@ public class PagamentoServiceTests
     }
 
     [Fact]
-    public async Task PagamentoJaFoiProcessadoAsync_DeveRetornarTrue_QuandoPedidoEstiverNoCache()
+    public async Task PagamentoJaFoiProcessadoAsync_DeveRetornarTrue_QuandoPedidoEstiverNoBanco()
     {
         // Arrange
         var pedidoId = Guid.NewGuid();
-        object valorRetornoDoCache = true;
 
-        // Simulamos que o IMemoryCache encontrou a chave
-        _cacheMock
-            .Setup(c => c.TryGetValue(pedidoId, out valorRetornoDoCache))
-            .Returns(true);
+        // Inserimos manualmente um registo na tabela de pagamentos processados da base em memória
+        _context.PagamentosProcessados.Add(new PagamentoProcessado
+        (
+            pedidoId
+        ));
+        await _context.SaveChangesAsync();
 
         // Act
         var resultado = await _service.PagamentoJaFoiProcessadoAsync(pedidoId);
@@ -84,21 +93,21 @@ public class PagamentoServiceTests
     }
 
     [Fact]
-    public async Task PagamentoJaFoiProcessadoAsync_DeveRetornarFalse_QuandoPedidoNaoEstiverNoCache()
+    public async Task PagamentoJaFoiProcessadoAsync_DeveRetornarFalse_QuandoPedidoNaoEstiverNoBanco()
     {
         // Arrange
         var pedidoId = Guid.NewGuid();
-        object valorRetornoDoCache = null;
 
-        // Simulamos que o cache NÃO encontrou a chave (retorna false)
-        _cacheMock
-            .Setup(c => c.TryGetValue(pedidoId, out valorRetornoDoCache))
-            .Returns(false);
-
-        // Act
+        // Act (nenhum registo inserido no banco)
         var resultado = await _service.PagamentoJaFoiProcessadoAsync(pedidoId);
 
         // Assert
         resultado.Should().BeFalse();
+    }
+
+    public void Dispose()
+    {
+        _context.Database.EnsureDeleted();
+        _context.Dispose();
     }
 }

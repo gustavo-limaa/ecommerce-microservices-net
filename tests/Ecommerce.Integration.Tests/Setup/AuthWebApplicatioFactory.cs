@@ -20,7 +20,7 @@ public class AuthWebApplicationFactory : WebApplicationFactory<AuthProgram>, IAs
 {
     private DbConnection? _dbConnection;
     private Respawner? _respawner;
-    public const string TestConnectionString = "Server=127.0.0.1;Port=3308;Database=ecommerce_auth_testes_db;Uid=test_user;Pwd=test_password_123;";
+    public const string TestConnectionString = "Server=127.0.0.1;Port=3308;Database=ecommerce_auth_testes_db;Uid=test_user;Pwd=455368;";
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {

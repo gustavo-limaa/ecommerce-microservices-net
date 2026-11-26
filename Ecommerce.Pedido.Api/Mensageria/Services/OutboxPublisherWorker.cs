@@ -2,11 +2,10 @@
 using Ecommerce.Pedido.Api.Infrastructure;
 using Ecommerce.Pedido.Api.Infrastructure.Data;
 using Ecommerce.Pedido.Api.Mensageria.Events;
-using Ecommerce.Pedido.Api.Mensageria.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
-namespace Ecommerce.Pedido.Api.BackgroundServices;
+namespace Ecommerce.Pedido.Api.Mensageria.Services;
 
 public class OutboxPublisherWorker : BackgroundService
 {
@@ -24,19 +23,29 @@ public class OutboxPublisherWorker : BackgroundService
     {
         _logger.LogInformation("OutboxPublisherWorker iniciado.");
 
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            try
-            {
-                await ProcessarMensagensOutboxAsync(stoppingToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Erro no loop de processamento do OutboxPublisherWorker.");
-            }
+        await Task.Yield(); // Garante que o método seja assíncrono
 
-            // Aguarda 5 segundos antes da próxima varredura
-            await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+        try
+        {
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                try
+                {
+                    await ProcessarMensagensOutboxAsync(stoppingToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Erro no loop de processamento do OutboxPublisherWorker.");
+                }
+
+                // Aguarda 5 segundos antes da próxima varredura
+                await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // A aplicação está a ser encerrada, o Task.Delay foi cancelado graciosamente.
+            _logger.LogInformation("Worker de publicação do Outbox desligado com sucesso.");
         }
     }
 

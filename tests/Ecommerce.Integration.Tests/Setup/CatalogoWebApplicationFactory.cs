@@ -19,7 +19,7 @@ namespace Ecommerce.Integration.Tests.Setup;
 
 public class CatalogoWebApplicationFactory : WebApplicationFactory<ICatalogoAssemblyMarker>, IAsyncLifetime
 {
-    private const string TestConnectionString = "Server=127.0.0.1;Port=3308;Database=ecommerce_catalogo_testes_db;Uid=test_user;Pwd=test_password_123;";
+    private const string TestConnectionString = "Server=127.0.0.1;Port=3308;Database=ecommerce_catalogo_testes_db;Uid=test_user;Pwd=455368;";
     private DbConnection? _dbConnection;
     private Respawner? _respawner;
 
@@ -95,5 +95,7 @@ public class CatalogoWebApplicationFactory : WebApplicationFactory<ICatalogoAsse
             await _dbConnection.CloseAsync();
             await _dbConnection.DisposeAsync();
         }
+
+        await base.DisposeAsync();
     }
 }

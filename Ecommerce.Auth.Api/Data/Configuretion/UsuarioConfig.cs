@@ -3,7 +3,7 @@ using Ecommerce.Auth.Api.Entities.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace Ecommerce.Auth.Api.Data.Configuration;
+namespace Ecommerce.Auth.Api.Data.Configuretion;
 
 public class UsuarioConfig : IEntityTypeConfiguration<Usuario>
 {

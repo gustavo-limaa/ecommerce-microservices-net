@@ -78,9 +78,11 @@ public static class DataFactory
     public static (RegistroUsuarioDto Registro, LoginDto Login) GerarCredenciaisValidas(string perfil = "Cliente")
     {
         var faker = new Faker("pt_BR");
-        var email = faker.Internet.Email().ToLower();
+        var sufixo = Guid.NewGuid().ToString("N")[..6];
+        var usuarioBase = faker.Internet.UserName().ToLower();
+        var email = $"{usuarioBase}.{sufixo}@teste.com";
+        var senha = $"Aa1!{faker.Internet.Password(length: 8, memorable: false)}";
 
-        var senha = faker.Internet.Password(length: 10, memorable: false, prefix: "Aa1!");
         var registro = new RegistroUsuarioDto(
             Nome: faker.Person.FullName,
             Email: email,
@@ -98,8 +100,8 @@ public static class DataFactory
 
     public static Faker<LoginDto> LoginDtoFaker => new Faker<LoginDto>("pt_BR")
         .CustomInstantiator(f => new LoginDto(
-            Email: f.Internet.Email(),
-            Senha: f.Internet.Password(8, false, null, "Aa1!")
+            Email: f.Internet.Email().ToLower(),
+            Senha: $"Aa1!{f.Internet.Password(length: 8, memorable: false)}"
         ));
 
     public static Faker<RegistroUsuarioDto> RegistroUsuarioDtoFaker => new Faker<RegistroUsuarioDto>("pt_BR")

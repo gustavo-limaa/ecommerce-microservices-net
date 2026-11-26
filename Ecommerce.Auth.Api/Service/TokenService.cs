@@ -1,11 +1,10 @@
 ﻿using Ecommerce.Auth.Api.Entities;
-using Ecommerce.Auth.Api.Service;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace Ecommerce.Auth.Api.Services;
+namespace Ecommerce.Auth.Api.Service;
 
 public class TokenService(IConfiguration configuration) : ITokenService
 {

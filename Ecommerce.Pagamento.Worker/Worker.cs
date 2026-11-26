@@ -1,4 +1,5 @@
 using Ecommerce.Pagamento.Worker.Events;
+using Ecommerce.Pagamento.Worker.RabbitMq;
 using Ecommerce.Pagamento.Worker.Service;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -48,9 +49,8 @@ public class Worker(
         using (connection)
         using (var channel = await connection.CreateChannelAsync(cancellationToken: stoppingToken))
         {
-            await channel.QueueDeclareAsync(QueueRecebimento, durable: true, exclusive: false, autoDelete: false, cancellationToken: stoppingToken);
-            await channel.QueueDeclareAsync(QueueResposta, durable: true, exclusive: false, autoDelete: false, cancellationToken: stoppingToken);
-
+            await RabbitMqTopologyBuilder.DeclareQueueWithDlqAsync(channel, QueueRecebimento, stoppingToken);
+            await RabbitMqTopologyBuilder.DeclareQueueWithDlqAsync(channel, QueueResposta, stoppingToken);
             var consumer = new AsyncEventingBasicConsumer(channel);
 
             consumer.ReceivedAsync += async (model, ea) =>
@@ -78,7 +78,7 @@ public class Worker(
                             var resultadoPagamento = await pagamentoService.ProcessarPagamento(pedidoEvento);
 
                             // 3. Marca como processado na memória para blindar contra duplicidade no futuro
-                            pagamentoService.MarcarComoProcessado(pedidoEvento.PedidoId);
+                            await pagamentoService.MarcarComoProcessadoAsync(pedidoEvento.PedidoId);
 
                             // 4. Publica a resposta
                             var respostaBody = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(resultadoPagamento));
